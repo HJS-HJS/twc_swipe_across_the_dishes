@@ -51,8 +51,8 @@ class SwipeDishExample(object):
 
         # Load camera transform and broadcast to /tf
         self.cam_tf_broadcaster = CameraTransformBroadcaster()
-        self.cam_tf_broadcaster.broadcast_transforms(self.depth_tf)
-
+        self.cam_tf_broadcaster.broadcast_transforms_pose(self.camera_pose)
+        
         self.cv_bridge = CvBridge()
 
         # publish for visualization
@@ -60,6 +60,8 @@ class SwipeDishExample(object):
         self.push_path_pub   = rospy.Publisher('/vis/push_path', Path, queue_size=2)
         self.point_cloud_pub = rospy.Publisher('/vis/point_cloud2', PointCloud2, queue_size=2)
         self.color_image_pub = rospy.Publisher('/vis/color_image', Image, queue_size=2)
+        
+        self.visualize_example_scene_in_rviz()
     
     def init_swipe_planner(self):
         self.swipe_planner_client = GetSwipeDishesPath()
@@ -79,8 +81,6 @@ class SwipeDishExample(object):
         self.camera_pose       = open_pickle('camera_pose.p')
         self.target_id         = open_pickle('target_id.p')
         self.color_image       = open_pickle('image.p')
-        self.depth_tf          = open_pickle('depth_tf.p')
-        
 
     @staticmethod
     def show_example_segmented_scene(scene_img):
@@ -99,7 +99,7 @@ class SwipeDishExample(object):
     def request_swipe_path(self):
         
         # Visualize example scene (does not affect planning)
-        self.show_example_segmented_scene(self.color_image)
+        # self.show_example_segmented_scene(self.color_image)
         self.visualize_example_scene_in_rviz()
         
         # Request push planning
@@ -152,7 +152,6 @@ class SwipeDishExample(object):
             eef_path_msg.poses.append(_pose_stamped)
         
         return eef_path_msg
-
 
     def depth_msg2image(self, depth) -> np.ndarray:
         """Depth image from the subscribed depth image topic.

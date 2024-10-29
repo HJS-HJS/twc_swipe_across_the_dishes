@@ -89,7 +89,7 @@ class SwipeAcrossTheDishesServer(object):
         cam_pos_quat = [camera_pose_msg.pose.orientation.x, camera_pose_msg.pose.orientation.y, camera_pose_msg.pose.orientation.z, camera_pose_msg.pose.orientation.w]
         cam_pos = self.tf.fromTranslationRotation(cam_pos_tran, cam_pos_quat)
         # Convert depth image type from sensor_msgs/Image to cv2.
-        depth_img = self.cv_bridge.imgmsg_to_cv2(depth_img_msg, desired_encoding='passthrough')
+        depth_img = self.depth_msg2image(depth_img_msg)
         # Convert camera intrinsic type from sensor_msgs/CameraInfo to matrix.
         cam_intr = np.array(camera_info_msg.K).reshape(3, 3)
 
@@ -367,7 +367,7 @@ class SwipeAcrossTheDishesServer(object):
         for idx, detection in enumerate(dish_segmentation_msg.detections):
             # Get segmask
             segmask_msg = detection.source_img
-            segmask = self.cv_bridge.imgmsg_to_cv2(segmask_msg, desired_encoding='passthrough')
+            segmask = self.depth_msg2image(segmask_msg)
             if idx == target_id: target_segmask = segmask
             else: segmasks.append(segmask)
         
@@ -454,6 +454,23 @@ class SwipeAcrossTheDishesServer(object):
         res.plan_successful = False
         res.gripper_pose = [self.gripper_config["width"]]
         return res
+    
+    def depth_msg2image(self, depth) -> np.ndarray:
+        """Depth image from the subscribed depth image topic.
+
+        Returns:
+            `numpy.ndarray`: (H, W) with `float32` depth image.
+        """
+        if depth.encoding == '32FC1':
+            img = self.cv_bridge.imgmsg_to_cv2(depth)
+        elif depth.encoding == '16UC1':
+            img = self.cv_bridge.imgmsg_to_cv2(depth)
+            img = (img/1000.).astype(np.float32)
+        else:
+            img = self.cv_bridge.imgmsg_to_cv2(depth)
+        print(depth.encoding)
+
+        return img
 
 if __name__ == '__main__':
     rospy.init_node('stable_push_net_server')

@@ -159,7 +159,8 @@ class SwipeAcrossTheDishesServer(object):
                 _is_collision = True
                 break
          
-        if self.is_bound_out(target_ellipse.center, obs_ellipse_list, np.deg2rad(25), 0.1, table_center[0:2], table_rotation[0:2]):
+        if False:
+        # if self.is_bound_out(target_ellipse.center, obs_ellipse_list, np.deg2rad(10), 0.01, table_center[0:2], table_rotation[0:2]):
             _is_collision = True
             rospy.loginfo("Dishes are pushed off the table.")
         if not _is_collision:
@@ -171,7 +172,8 @@ class SwipeAcrossTheDishesServer(object):
                 if not Ellipse.check_collision(obs, e_path_xy): 
                     _is_collision = False
                     break
-            if self.is_bound_out(target_ellipse.center, obs_ellipse_list, np.deg2rad(-25), 0.1, table_center[0:2], table_rotation[0:2]):
+            if False:
+            # if self.is_bound_out(target_ellipse.center, obs_ellipse_list, np.deg2rad(-25), 0.1, table_center[0:2], table_rotation[0:2]):
                 _is_collision = False
                 rospy.loginfo("Dishes are pushed off the table.")
             if _is_collision:
@@ -179,8 +181,8 @@ class SwipeAcrossTheDishesServer(object):
                 finger_path_xy = np.flip(finger_path_xy, axis=1)
                 finger_path_xy = np.concatenate([e_path_xy[:,1:-1], finger_path_xy], axis=1)
             else:
-                # rospy.logwarn("failed end path")
-                return self.path_failed("failed end path")
+                rospy.logwarn("failed end path")
+                # return self.path_failed("failed end path")
                 
         # Set pushing velocity
         _vel = self.planner_config["swipe_speed"] # m/s

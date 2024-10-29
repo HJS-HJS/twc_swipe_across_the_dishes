@@ -21,6 +21,7 @@ from cv_bridge import CvBridge
 import matplotlib.pyplot as plt
 from utils.utils import depth2pcd
 from tf_broadcaster.tf_broadcaster import CameraTransformBroadcaster
+from manipulator_interface.motion_planner import MotionPlanner
 
 
 # For loading example data
@@ -42,6 +43,11 @@ class SwipeDishExample(object):
         
         # Get pre-made example data
         self.get_example_data()
+        
+        # Motion Planner for doosan manipulator
+        self.motion_planner = MotionPlanner(
+            group_name='m1013_arm', pose_reference_frame='base_0')
+        self.motion_planner.move_group.set_max_velocity_scaling_factor(0.1)
 
         # Load camera transform and broadcast to /tf
         self.cam_tf_broadcaster = CameraTransformBroadcaster()
@@ -111,6 +117,7 @@ class SwipeDishExample(object):
         # Visualize planned push path in rViz
         self.push_moveit_pub.publish(push_path)
         self.push_path_pub.publish(self.moveit_cartesian_to_path(push_path))
+        self.motion_planner.run_swipe_path(push_path)
 
     def pcd_to_pointcloud2(self, pcd):
         _header = Header()

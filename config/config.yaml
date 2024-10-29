@@ -1,7 +1,7 @@
 planner:
   gripper: "hanyang"
-  visualize: False
-  show_finger_path: False
+  visualize: True
+  show_finger_path: True
   dish_r_margin: 0.035 # unit: m
   swipe_a_margin: 5.0 # unit: deg
   swipe_speed: 0.07   # unit:m/s
@@ -12,5 +12,6 @@ gripper:
     width: 0.10
     height: 0.343421
     finger_angle: 180 # hanyang
-    z_angle: +13.1825
+    # z_angle: +13.1825
+    z_angle: -31.8175
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+import copy
 import numpy as np
 import matplotlib
 matplotlib.use('TkAgg')
@@ -10,7 +11,8 @@ import rospy
 import tf
 import tf.transformations as tft
 from cv_bridge import CvBridge
-from geometry_msgs.msg import PoseStamped, PoseArray, Pose
+from visualization_msgs.msg import Marker, MarkerArray
+from geometry_msgs.msg import PoseStamped, PoseArray, Pose, Point
 from nav_msgs.msg import Path
 from moveit_msgs.msg import CartesianTrajectory, CartesianTrajectoryPoint
 
@@ -27,8 +29,8 @@ class SwipeAcrossTheDishesServer(object):
         self.tf = tf.TransformerROS()
         
         # Get parameters.
-        self.planner_config     = rospy.get_param("~planner")
-        self.gripper_config     = rospy.get_param("~gripper")[self.planner_config["gripper"]]
+        self.planner_config = rospy.get_param("~planner")
+        self.gripper_config = rospy.get_param("~gripper")[self.planner_config["gripper"]]
 
         # Print param to terminal.
         rospy.loginfo("planner config: {}".format(self.planner_config))
@@ -42,7 +44,7 @@ class SwipeAcrossTheDishesServer(object):
             )
 
         # Publisher for visualization
-        if self.planner_config["show_finger_path"]:
+        if self.planner_config["publish_vis_topic"]:
             self.push_path_origin_pub = rospy.Publisher(
                 '/swipe_across_ths_dishes/push_path_origin', Path, queue_size=2)
             self.push_path_origin_second_pub = rospy.Publisher(
@@ -51,7 +53,9 @@ class SwipeAcrossTheDishesServer(object):
                 '/swipe_across_ths_dishes/push_path_origin_eef', Path, queue_size=2)
             self.push_path_moveit = rospy.Publisher(
                 '/swipe_across_ths_dishes/push_path', CartesianTrajectory, queue_size=2)
-
+            self.dish_edge_pub = rospy.Publisher(
+                '/swipe_across_ths_dishes/dish_edge', MarkerArray, queue_size=2)
+            
         # Print info message to terminal when push server is ready.
         rospy.loginfo('SwipeAcrossTheDishesServer is ready to serve.')
     
@@ -115,7 +119,65 @@ class SwipeAcrossTheDishesServer(object):
             _obs_ellipse.resize(self.planner_config["dish_r_margin"], self.planner_config["dish_r_margin"])
             obs_ellipse_list.append(_obs_ellipse)
         
-
+        # Notice the target dish and obstacles 
+        # Target dish
+        rospy.loginfo("target dish [m]: \t x: {:.3f}, y: {:.3f}".format(target_ellipse.center[0], target_ellipse.center[1]))
+        # Obstacle dish
+        if len(obs_ellipse_list) == 0:
+            return self.path_failed("obstacle dish not exist")
+        else:
+            rospy.loginfo("total obstacle dish num: {0}".format(len(obs_ellipse_list)))
+        for _obs in obs_ellipse_list:
+            rospy.loginfo("obstacle dish [m]: \t x: {:.3f}, y: {:.3f}".format(_obs.center[0], _obs.center[1]))
+        # Publish edge of the dishes
+        if self.planner_config["publish_vis_topic"]:
+            _edge_marker_list = MarkerArray()
+            _id = 0
+            _edge_marker = Marker()
+            _edge_marker.header.frame_id = camera_pose_msg.header.frame_id
+            _edge_marker.ns = "dish_edge_marker"
+            _edge_marker.id = 0
+            _edge_marker.type = Marker.LINE_STRIP
+            _edge_marker.pose.position.x = 0
+            _edge_marker.pose.position.y = 0
+            _edge_marker.pose.position.z = 0
+            _edge_marker.pose.orientation.x = 0
+            _edge_marker.pose.orientation.y = 0
+            _edge_marker.pose.orientation.z = 0
+            _edge_marker.pose.orientation.w = 1
+            _edge_marker.scale.x = 0.01
+            _edge_marker.scale.y = 0.01
+            _edge_marker.scale.z = 0.01
+            _edge_marker.color.a = 1.0
+            _edge_marker.color.r = 1.0
+            _edge_marker.color.g = 1.0
+            _edge_marker.color.b = 0.0
+            _edge_marker.points = []
+            # target dish
+            _edge = copy.deepcopy(_edge_marker)
+            for _point in target_ellipse.get_ellipse_pts(npts=20).T:
+                _p = Point()
+                _p.x, _p.y, _p.z = _point[0], _point[1], table_center[2] + 0.1
+                _edge.points.append(_p)
+            _edge.color.r = 0.0
+            _edge.color.g = 0.0
+            _edge.color.b = 1.0
+            _edge.id = _id
+            _id += 1
+            _edge_marker_list.markers.append(_edge)
+            # Obstacle dish
+            for _dish in obs_ellipse_list:
+                _edge = copy.deepcopy(_edge_marker)
+                for _point in _dish.get_ellipse_pts(npts=20).T:
+                    _p = Point()
+                    _p.x, _p.y, _p.z = _point[0], _point[1], table_center[2] + 0.1
+                    _edge.points.append(_p)
+                _edge.id = _id
+                _id += 1
+                _edge_marker_list.markers.append(_edge)
+            self.dish_edge_pub.publish(_edge_marker_list)
+            rospy.loginfo("Publish the edge of the dishes as ROS topic.")
+            
         # Get each obstable collapse angle.
         overlap_range = []
         for _obs in obs_ellipse_list:
@@ -124,7 +186,7 @@ class SwipeAcrossTheDishesServer(object):
             else: overlap_range.append(_overlap)
 
         if len(overlap_range) != 0: 
-            rospy.loginfo("collision obs num: {0}".format(len(overlap_range)))
+            rospy.loginfo("collision available obs num: {0}".format(len(overlap_range)))
             path_angle = overlap_range.pop(0)
             for i in range(len(overlap_range)):
                 _shortest_dix = 0
@@ -135,7 +197,6 @@ class SwipeAcrossTheDishesServer(object):
                         _shortest_dix, _min_dist = _idx, _dis
                 _temp = overlap_range[_shortest_dix]
                 path_angle = Angle.sum(path_angle, overlap_range.pop(_shortest_dix))
-            # rospy.loginfo("results: {0}".format(np.rad2deg(np.array([path_angle.start, path_angle.end]))))
         else: 
             return self.path_failed("overlap not occur")
 
@@ -152,37 +213,43 @@ class SwipeAcrossTheDishesServer(object):
         s_path_xy = s_t_ellipse.get_approach_path(npts=25, tmin= target_ellipse.normal_vector(path_angle.start) + np.pi, trange= _desired_angle, width= self.gripper_config["width"] + 0.07)
         e_path_xy = e_t_ellipse.get_approach_path(npts=25, tmin= target_ellipse.normal_vector(path_angle.end) + np.pi, trange= -_desired_angle, width= self.gripper_config["width"] + 0.07)
 
-        # collision check
-        _is_collision = False
+        # collision check with start path
+        rospy.loginfo("collision check with finger path")
+        _is_collision_s = False
         for obs in obs_ellipse_list:
             if not Ellipse.check_collision(obs, s_path_xy):
-                _is_collision = True
+                _is_collision_s = True
+                rospy.loginfo("collision occur with obs dish [m]: \t x: {:.3f}, y: {:.3f}".format(_obs.center[0], _obs.center[1]))
                 break
-         
-        if False:
-        # if self.is_bound_out(target_ellipse.center, obs_ellipse_list, np.deg2rad(10), 0.01, table_center[0:2], table_rotation[0:2]):
-            _is_collision = True
-            rospy.loginfo("Dishes are pushed off the table.")
-        if not _is_collision:
-            rospy.loginfo("success start path")
-            finger_path_xy = np.concatenate([s_path_xy[:,1:-1], finger_path_xy], axis=1)
-        else:
-            rospy.loginfo("failed start path")
-            for obs in obs_ellipse_list:
-                if not Ellipse.check_collision(obs, e_path_xy): 
-                    _is_collision = False
-                    break
-            if False:
-            # if self.is_bound_out(target_ellipse.center, obs_ellipse_list, np.deg2rad(-25), 0.1, table_center[0:2], table_rotation[0:2]):
-                _is_collision = False
-                rospy.loginfo("Dishes are pushed off the table.")
-            if _is_collision:
-                rospy.loginfo("success end path")
-                finger_path_xy = np.flip(finger_path_xy, axis=1)
-                finger_path_xy = np.concatenate([e_path_xy[:,1:-1], finger_path_xy], axis=1)
+        # collision check with end path
+        _is_collision_e = False
+        for obs in obs_ellipse_list:
+            if not Ellipse.check_collision(obs, e_path_xy):
+                _is_collision_e = True
+                rospy.loginfo("collision occur with obs dish [m]: \t x: {:.3f}, y: {:.3f}".format(_obs.center[0], _obs.center[1]))
+                break
+        
+        # if both paths are available, choose closest path
+        if not (_is_collision_s or _is_collision_e):
+            rospy.loginfo("start and end paths are both available")
+            if np.linalg.norm(s_path_xy[0]) < np.linalg.norm(e_path_xy[0]):
+                _is_collision_e = True
             else:
-                rospy.logwarn("failed end path")
-                # return self.path_failed("failed end path")
+                _is_collision_s = True
+            
+        # generate available path
+        if not _is_collision_s:
+            rospy.loginfo("start making finger path with start point (ccw)")
+            finger_path_xy = np.concatenate([s_path_xy[:,1:-1], finger_path_xy], axis=1)
+            _clockwise = False
+        elif not _is_collision_e:
+            rospy.loginfo("start making finger path with end point (cw)")
+            finger_path_xy = np.flip(finger_path_xy, axis=1)
+            finger_path_xy = np.concatenate([e_path_xy[:,1:-1], finger_path_xy], axis=1)
+            _clockwise = True
+        else:
+            rospy.logwarn("finger path generation failed. collision occur with every path")
+            return self.path_failed("failed finger path generation")
                 
         # Set pushing velocity
         _vel = self.planner_config["swipe_speed"] # m/s
@@ -217,9 +284,10 @@ class SwipeAcrossTheDishesServer(object):
 
         # Jaeseog code
         # _is_collision is True when start with e_path_xy
-        eef_path, bf_path = cartesianTraj2EETraj(finger_path, gripper_radius = self.gripper_config["width"], margin_angle = np.deg2rad(0), alpha = 0.01, clock_wise = not _is_collision)
-        _clockwise = 1 if _is_collision else -1
+        eef_path, bf_path = cartesianTraj2EETraj(finger_path, gripper_radius = self.gripper_config["width"], margin_angle = np.deg2rad(0), alpha = 0.01, clock_wise = not _clockwise)
+        _clockwise = 1 if _clockwise else -1
         
+        rospy.loginfo("Swipe ROS path generation finished")
         # vis
         if self.planner_config["visualize"]:
             origin_target_ellipse = Ellipse(target_edge.edge_xyz[:,0], target_edge.edge_xyz[:,1])
@@ -272,13 +340,18 @@ class SwipeAcrossTheDishesServer(object):
             x, y = origin_target_ellipse.get_ellipse_pts()
             ax2.plot(x, y, color='black')
 
-            _temp = self.is_bound_out_point(target_ellipse.center, obs_ellipse_list, np.deg2rad(25), 0.1, table_center[0:2], table_rotation[0:2])
-            for point in _temp:
-                ax2.scatter(point[0], point[1])
+            # _temp = self.is_bound_out_point(target_ellipse.center, obs_ellipse_list, np.deg2rad(25), 0.1, table_center[0:2], table_rotation[0:2])
+            # for point in _temp:
+            #     ax2.scatter(point[0], point[1])
                 
-            _temp = self.is_bound_out_point(target_ellipse.center, obs_ellipse_list, np.deg2rad(-25), 0.1, table_center[0:2], table_rotation[0:2])
-            for point in _temp:
-                ax2.scatter(point[0], point[1])
+            # _temp = self.is_bound_out_point(target_ellipse.center, obs_ellipse_list, np.deg2rad(-25), 0.1, table_center[0:2], table_rotation[0:2])
+            # for point in _temp:
+            #     ax2.scatter(point[0], point[1])
+                
+            ax1.grid(True)
+            ax2.grid(True)
+            ax1.set_aspect('equal')
+            ax2.set_aspect('equal')
                 
             plt.show()
 
@@ -286,7 +359,7 @@ class SwipeAcrossTheDishesServer(object):
         path_msg = CartesianTrajectory()
         path_msg.header.stamp = rospy.Time.now()
         path_msg.header.frame_id = camera_pose_msg.header.frame_id # base link of doosan m1013
-        path_msg.tracked_frame = "grasp_point" # end effector of gripper
+        path_msg.tracked_frame = "end_effector" # end effector of gripper
         path_msg.points =[]
 
         for each_point in eef_path.poses:
@@ -303,8 +376,9 @@ class SwipeAcrossTheDishesServer(object):
             # gripper orientation
             _point.point.pose.orientation.x, _point.point.pose.orientation.y, _point.point.pose.orientation.z, _point.point.pose.orientation.w = tft.quaternion_from_matrix(path_rot_matrix)
             path_msg.points.append(_point)
+        rospy.loginfo("Swipe ROS path generation finished")
 
-        if self.planner_config["show_finger_path"]:
+        if self.planner_config["publish_vis_topic"]:
             # Make path ros msg to check in rviz
             first_path_msg = Path()
             first_path_msg.header.frame_id = camera_pose_msg.header.frame_id
@@ -343,17 +417,18 @@ class SwipeAcrossTheDishesServer(object):
             self.push_path_origin_second_pub.publish(second_path_msg)
             self.push_path_origin_eef_pub.publish(eef_path_msg)
             self.push_path_moveit.publish(path_msg)
+            rospy.loginfo("Publish the created path as ROS topic.")
 
             
-        rospy.loginfo("Swipe Time: {0}".format(_spent_time.to_sec()))
+        rospy.loginfo("Swipe Path Time: {0}".format(_spent_time.to_sec()))
         rospy.loginfo("Swipe Path Lenght: {0}".format(_path_lenght))
         res = GetSwipeDishesPathResponse()   
         res.path = path_msg
         if len(path_msg.points) == 0:
-            rospy.loginfo('Path generation failed')
+            rospy.loginfo('Path generation failed\n')
             res.plan_successful = False
         else:
-            rospy.loginfo('Path generation successed')
+            rospy.loginfo('Path generation successed\n')
             res.plan_successful = True
         res.gripper_pose = [self.gripper_config["width"]]
         return res
@@ -407,22 +482,6 @@ class SwipeAcrossTheDishesServer(object):
         # return [x_min, x_max, y_min, y_max], tft.quaternion_matrix(orientation)
         return [x_min, x_max, y_min, y_max], [position[0], position[1], position[2]], [x_vector[0:3], y_vector[0:3], z_vector[0:3]], tft.quaternion_matrix(orientation)
 
-    def is_bound_out(self, center, ellipse_list, push_angle, push_width, table_center_xy, table_vectors_xy):
-        ''' Check if the dished is out of the table.'''
-        for ellipse in ellipse_list:
-            c_vector = ellipse.center - center
-            c_vector = c_vector / np.linalg.norm(c_vector) * push_width
-            rot_matrix = np.array([
-                [np.cos(push_angle), -np.sin(push_angle)],
-                [np.sin(push_angle), np.cos(push_angle)],
-            ])
-            t_vector = rot_matrix @ c_vector + ellipse.center - table_center_xy
-            if (np.abs(t_vector @ table_vectors_xy[0][0:2]) > np.power(np.linalg.norm(table_vectors_xy[0][0:2]),2)):
-                return(True)
-            if (np.abs(t_vector @ table_vectors_xy[1][0:2]) > np.power(np.linalg.norm(table_vectors_xy[1][0:2]),2)):
-                return(True)
-        return False
-    
     def is_bound_out_point(self, center, ellipse_list, push_angle, push_width, table_center_xy, table_vectors_xy):
         ''' Check if the dished is out of the table.'''
         _temp = []
@@ -450,7 +509,7 @@ class SwipeAcrossTheDishesServer(object):
 
     def path_failed(self, log:str):
         res = GetSwipeDishesPathResponse()   
-        rospy.logwarn('Path generation failed: %s', log)
+        rospy.logwarn('Path generation failed: %s\n', log)
         res.plan_successful = False
         res.gripper_pose = [self.gripper_config["width"]]
         return res
@@ -468,7 +527,6 @@ class SwipeAcrossTheDishesServer(object):
             img = (img/1000.).astype(np.float32)
         else:
             img = self.cv_bridge.imgmsg_to_cv2(depth)
-        print(depth.encoding)
 
         return img
 

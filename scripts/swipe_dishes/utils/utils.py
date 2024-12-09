@@ -1,5 +1,4 @@
 import numpy as np
-
 class Angle():
     def __init__(self, start, end):
         self.start = start
@@ -54,3 +53,4 @@ class Angle():
         offset = a.center + diff - b.center
         b.resize(offset)
         return b.start - a.end
+    

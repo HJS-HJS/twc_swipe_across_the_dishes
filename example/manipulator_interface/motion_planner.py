@@ -21,7 +21,8 @@ from nav_msgs.msg import Path
 try:
     input = input
 except NameError:
-    print('python 2/3 compatiblity: input() is changed to input(). Delete this try-except block when you update to noetic.')
+    print(
+        'python 2/3 compatiblity: input() is changed to input(). Delete this try-except block when you update to noetic.')
     pass
 
 # import doosan robot module
@@ -32,13 +33,15 @@ sys.path.append(os.path.join(pkg_path, "imp"))
 ROBOT_ID = "dsr01"
 ROBOT_MODEL = "m1013"
 import DR_init
+
 DR_init.__dsr__id = ROBOT_ID
 DR_init.__dsr__model = ROBOT_MODEL
 import DSR_ROBOT as drfl
 import DR_common as dr_com
 
+
 class MotionPlanner(object):
-    def __init__(self, group_name, pose_reference_frame):
+    def __init__(self, group_name, pose_reference_frame, ns=''):
         """Initialize MotionPlanner.
 
         Args:
@@ -53,7 +56,8 @@ class MotionPlanner(object):
         self.tf = tf.TransformListener()
 
         # Initialize move group
-        self.move_group = moveit_commander.MoveGroupCommander(group_name, wait_for_servers=20.0)
+        self.move_group = moveit_commander.MoveGroupCommander(group_name, robot_description=ns + '/robot_description',
+                                                              ns=ns, wait_for_servers=20.0)
         # self.move_group = moveit_commander.MoveGroupCommander(group_name)
         self.move_group.set_pose_reference_frame(self.pose_reference_frame)
 
@@ -64,9 +68,9 @@ class MotionPlanner(object):
             queue_size=2)
 
         # Initialize services
-        self.fk_srv = rospy.ServiceProxy('/compute_fk', GetPositionFK)
+        self.fk_srv = rospy.ServiceProxy(ns + '/compute_fk', GetPositionFK)
         self.fk_srv.wait_for_service()
-        self.ik_srv = rospy.ServiceProxy('/compute_ik', GetPositionIK)
+        self.ik_srv = rospy.ServiceProxy(ns + '/compute_ik', GetPositionIK)
         self.ik_srv.wait_for_service()
 
         # sleep
@@ -75,7 +79,7 @@ class MotionPlanner(object):
     def run_swipe_path(self, path):
         """Run swipe path.
         """
-        
+
         # Convert moveit cartesian to nav path
         push_path = Path()
         push_path.header = path.header
@@ -84,7 +88,7 @@ class MotionPlanner(object):
             _pose.header = path.header
             _pose.pose = _path.point.pose
             push_path.poses.append(_pose)
-            
+
         # Set approach pose
         approach_pose = self.offset_pose_relative(
             push_path.poses[0],
@@ -97,37 +101,37 @@ class MotionPlanner(object):
         end_posx = self.convert_to_drfl_posx(end_pose, 0.0)
 
         # Move m1013
-        max_vel = 30    # mm/s
-        max_acc = 30    # mm/s^2
+        max_vel = 30  # mm/s
+        max_acc = 30  # mm/s^2
         drfl.set_robot_mode(1)  # set robot mode to auto
-        
+
         # 0) Move to home pose
-        pose = drfl.posj(0, 0, 90, 0, 90 ,0)
+        pose = drfl.posj(0, 0, 90, 0, 90, 0)
         drfl.movej(pose, vel=30, acc=30)
-        
+
         # 1) Move to approach pose
         rospy.loginfo('Move to approach pose.')
         drfl.movel(approach_posx, vel=max_vel, acc=max_acc,
                    ref=drfl.DR_BASE, mod=drfl.DR_MV_MOD_ABS)
-        
+
         # 2) Move along path
         rospy.loginfo('Move along path.')
         self.move_group.set_start_state_to_current_state()
-        
+
         push_poses_cartesian = []
         for pose in push_path.poses:
             pose_cartesian_list = self.convert_to_drfl_posx(pose, 0.0)
             pose_cartesian = dr_com.posx(pose_cartesian_list[0], pose_cartesian_list[1], pose_cartesian_list[2],
                                          pose_cartesian_list[3], pose_cartesian_list[4], pose_cartesian_list[5])
             push_poses_cartesian.append(pose_cartesian)
-        
-        drfl.amovesx(push_poses_cartesian, vel=max_vel, acc=max_acc, 
+
+        drfl.amovesx(push_poses_cartesian, vel=max_vel, acc=max_acc,
                      ref=drfl.DR_BASE, mod=drfl.DR_MV_MOD_ABS, vel_opt=drfl.DR_MVS_VEL_CONST)
 
         # Check move along path done
-        while drfl.check_motion() == 2:     
+        while drfl.check_motion() == 2:
             rospy.sleep(0.01)
-                
+
         # 3) Move up
         rospy.loginfo('Move to up.')
         drfl.movel(end_posx, vel=max_vel, acc=max_acc,
@@ -233,7 +237,7 @@ class MotionPlanner(object):
             pose.pose.position.x,
             pose.pose.position.y,
             pose.pose.position.z,
-            ]
+        ]
         pose_trans_mat = tf.transformations.translation_matrix(pose_trans)
 
         # get pose rotation matrix
@@ -242,7 +246,7 @@ class MotionPlanner(object):
             pose.pose.orientation.y,
             pose.pose.orientation.z,
             pose.pose.orientation.w,
-            ]
+        ]
         pose_rot_mat = tf.transformations.quaternion_matrix(pose_quat)
 
         # get z-axis (-) offset translation matrix
@@ -274,8 +278,10 @@ class MotionPlanner(object):
         assert isinstance(pose, PoseStamped)
 
         # get transformation matrix
-        pose_tf = tf.transformations.translation_matrix([pose.pose.position.x, pose.pose.position.y, pose.pose.position.z])
-        pose_rot = tf.transformations.quaternion_matrix([pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z, pose.pose.orientation.w])
+        pose_tf = tf.transformations.translation_matrix(
+            [pose.pose.position.x, pose.pose.position.y, pose.pose.position.z])
+        pose_rot = tf.transformations.quaternion_matrix(
+            [pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z, pose.pose.orientation.w])
         # print(tf.transformations.euler_from_matrix(pose_rot, 'rzxy'))
         # print(np.rad2deg(np.pi + tf.transformations.euler_from_matrix(pose_rot, 'rzxy')[2]))
         _rad = np.pi + tf.transformations.euler_from_matrix(pose_rot, 'rzxy')[2]
@@ -303,8 +309,8 @@ class MotionPlanner(object):
         new_pose.pose.orientation.z = new_pose_quat[2]
         new_pose.pose.orientation.w = new_pose_quat[3]
         return new_pose
- 
-    def convert_to_drfl_posx(self, pose, z_offset:float=-0.266):
+
+    def convert_to_drfl_posx(self, pose, z_offset: float = -0.266):
         """Convert pose to drfl_posx.
 
         Args:

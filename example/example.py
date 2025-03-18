@@ -78,7 +78,7 @@ class SwipeDishExample(object):
         if vis: self.visualize_example_scene_in_rviz(depth_image, camera_info, color_image, camera_pose)
 
         # Request push planning
-        push_path, plan_successful, gripper_pose = self.swipe_planner_client.request(dish_segmentation,
+        push_path_list, plan_successful, gripper_pose = self.swipe_planner_client.request(dish_segmentation,
                                                                                      table_detection,
                                                                                      depth_image,
                                                                                      camera_info,
@@ -91,10 +91,11 @@ class SwipeDishExample(object):
 
         # Visualize planned push path in rViz
         if vis:
-            self.push_moveit_pub.publish(push_path)
-            self.push_path_pub.publish(self.moveit_cartesian_to_path(camera_pose, push_path))
+            best_path = 2
+            self.push_moveit_pub.publish(push_path_list[best_path])
+            self.push_path_pub.publish(self.moveit_cartesian_to_path(camera_pose, push_path_list[best_path]))
 
-        return push_path, plan_successful, gripper_pose
+        return push_path_list[best_path], plan_successful, gripper_pose
 
     def pcd_to_pointcloud2(self, pcd):
         _header = Header()

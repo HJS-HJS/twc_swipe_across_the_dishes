@@ -7,6 +7,6 @@ geometry_msgs/PoseStamped     camera_pose
 std_msgs/Int32                target_id
 
 ---
-moveit_msgs/CartesianTrajectory  path
-bool                             plan_successful
-float32[]                        gripper_pose
+moveit_msgs/CartesianTrajectory[]  path_list
+bool                               plan_successful
+float32[]                          gripper_pose

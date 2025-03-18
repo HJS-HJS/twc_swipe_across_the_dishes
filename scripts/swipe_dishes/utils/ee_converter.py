@@ -55,7 +55,7 @@ def euler2Quaternion(roll = 0, pitch = 0, yaw = 0):
     return quaternion_from_euler(roll, pitch, yaw)
 
 
-def cartesianTraj2EETraj(cartesian_traj, gripper_radius, margin_angle, alpha = 0.01, clock_wise = False):
+def cartesianTraj2EETraj(cartesian_traj, gripper_radius, margin_angle, alpha = 0.01, clock_wise = False, start_idx = 0):
     """
     Change given xyz cartesian trajectory to EE pose
     Inputs:
@@ -64,6 +64,7 @@ def cartesianTraj2EETraj(cartesian_traj, gripper_radius, margin_angle, alpha = 0
     - margin_angle: Make buffer distance to grasp object safely
     - alpha: Extract trajectory waypoint that finger_behind will pass through using distance error value alpha 
     - clock_wise: if trajectory moves along clockwise direction, reverse should be True value. If not, reverse should be False
+    - start_idx: first finger start index in cartesian_traj
 
     Outputs:
     - EETraj: geometry_msgs.msg/PoseArray format trajectory that represent EE pose / Orientation value will be inside [0, 2*pi], change orientation range if you want!!
@@ -111,7 +112,7 @@ def cartesianTraj2EETraj(cartesian_traj, gripper_radius, margin_angle, alpha = 0
 
     # Extract behind finger pose from trajectory
     reverse_vec = [cartesian_traj_x[0] - cartesian_traj_x[1], cartesian_traj_y[0] - cartesian_traj_y[1]]
-    for index, (finger_front_x, finger_front_y) in enumerate(zip(cartesian_traj_x, cartesian_traj_y)):        
+    for index, (finger_front_x, finger_front_y) in enumerate(zip(cartesian_traj_x, cartesian_traj_y)):
         waypoint_n = index
         k = 1
 
@@ -162,8 +163,7 @@ def cartesianTraj2EETraj(cartesian_traj, gripper_radius, margin_angle, alpha = 0
 
     EETraj = PoseArray()
     BHTraj = PoseArray()
-
-    for i in range(len(traj_EE_x)):
+    for i in range(start_idx, len(traj_EE_x)):
         # Create Pose for EETraj & BHTraj
         ee_pose = Pose()
         ee_pose.position.x = traj_EE_x[i]

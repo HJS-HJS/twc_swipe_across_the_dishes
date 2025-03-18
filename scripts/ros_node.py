@@ -129,6 +129,7 @@ class SwipeAcrossTheDishesServer(object):
             rospy.loginfo("total obstacle dish num: {0}".format(len(obs_ellipse_list)))
         for _obs in obs_ellipse_list:
             rospy.loginfo("obstacle dish [m]: \t x: {:.3f}, y: {:.3f}".format(_obs.center[0], _obs.center[1]))
+            
         # Publish edge of the dishes
         if self.planner_config["publish_vis_topic"]:
             _edge_marker_list = MarkerArray()
@@ -200,102 +201,58 @@ class SwipeAcrossTheDishesServer(object):
         else: 
             return self.path_failed("overlap not occur")
 
-        finger_path_xy = target_ellipse.get_ellipse_pts(npts=75, tmin=path_angle.start, trange=path_angle.end - path_angle.start)
+        total_path_lengh = 100
+        start_path_lengh = 15
+        start_path_num = 4
+        start_path_list = np.zeros((start_path_num, 2, start_path_lengh * 2))
         
-        # entering path
+        finger_path_xy_base = target_ellipse.get_ellipse_pts(npts=total_path_lengh - start_path_lengh + 1, tmin=path_angle.start, trange=path_angle.end - path_angle.start)
+        
+        # Generate entering path
         path_angle.add_margin(np.deg2rad(self.planner_config["swipe_a_margin"]))
         
-        s_t_ellipse = Ellipse(target_ellipse.point(path_angle.start), target_ellipse.normal_vector(path_angle.start), mode="tangent")
-        e_t_ellipse = Ellipse(target_ellipse.point(path_angle.end), target_ellipse.normal_vector(path_angle.end), mode="tangent")
+        cw_t_ellipse = Ellipse(target_ellipse.point(path_angle.start), target_ellipse.normal_vector(path_angle.start), mode="tangent")
+        ccw_t_ellipse = Ellipse(target_ellipse.point(path_angle.end), target_ellipse.normal_vector(path_angle.end), mode="tangent")
         
         _desired_angle = np.pi / 2.5
         
-        s_path_xy = s_t_ellipse.get_approach_path(npts=25, tmin= target_ellipse.normal_vector(path_angle.start) + np.pi, trange= _desired_angle, width= self.gripper_config["width"] + 0.07)
-        e_path_xy = e_t_ellipse.get_approach_path(npts=25, tmin= target_ellipse.normal_vector(path_angle.end) + np.pi, trange= -_desired_angle, width= self.gripper_config["width"] + 0.07)
+        ## Entering path from out of the target
+        start_path_list[0] = cw_t_ellipse.get_approach_path(npts=start_path_lengh, tmin= target_ellipse.normal_vector(path_angle.start) + np.pi, trange= _desired_angle, width= self.gripper_config["width"] + 0.07)
+        start_path_list[1] = ccw_t_ellipse.get_approach_path(npts=start_path_lengh, tmin= target_ellipse.normal_vector(path_angle.end) + np.pi, trange= -_desired_angle, width= self.gripper_config["width"] + 0.07)
 
-        # collision check with start path
+        ## Along path from out of the target
+        start_path_list[2] = target_ellipse.get_along_path(npts=start_path_lengh, tmin=path_angle.start, cw=True, width=self.gripper_config["width"])
+        start_path_list[3] = target_ellipse.get_along_path(npts=start_path_lengh, tmin=path_angle.end, cw=False, width=self.gripper_config["width"])
+
+        # collision check with each path
+        _is_available = np.ones(4)
         rospy.loginfo("collision check with finger path")
-        _is_collision_s = False
-        for obs in obs_ellipse_list:
-            if not Ellipse.check_collision(obs, s_path_xy):
-                _is_collision_s = True
-                rospy.loginfo("collision occur with obs dish [m]: \t x: {:.3f}, y: {:.3f}".format(_obs.center[0], _obs.center[1]))
-                break
-        # collision check with end path
-        _is_collision_e = False
-        for obs in obs_ellipse_list:
-            if not Ellipse.check_collision(obs, e_path_xy):
-                _is_collision_e = True
-                rospy.loginfo("collision occur with obs dish [m]: \t x: {:.3f}, y: {:.3f}".format(_obs.center[0], _obs.center[1]))
-                break
+        for idx in range(start_path_num):
+            for obs in obs_ellipse_list:
+                if not Ellipse.check_collision(obs, start_path_list[idx]):
+                    _is_available[i] = False
+                    rospy.loginfo("collision occur with #{} path, obs dish [m]: x: {:.3f}, y: {:.3f}".format(idx + 1, obs.center[0], obs.center[1]))
+                    break
+        rospy.loginfo("collision check finished")
         
-        # if both paths are available, choose closest path
-        if not (_is_collision_s or _is_collision_e):
-            rospy.loginfo("start and end paths are both available")
-            if np.linalg.norm(s_path_xy[0]) < np.linalg.norm(e_path_xy[0]):
-                _is_collision_e = True
-            else:
-                _is_collision_s = True
-            
-        # generate available path
-        if not _is_collision_s:
-            rospy.loginfo("start making finger path with start point (ccw)")
-            finger_path_xy = np.concatenate([s_path_xy[:,1:-1], finger_path_xy], axis=1)
-            _clockwise = False
-        elif not _is_collision_e:
-            rospy.loginfo("start making finger path with end point (cw)")
-            finger_path_xy = np.flip(finger_path_xy, axis=1)
-            finger_path_xy = np.concatenate([e_path_xy[:,1:-1], finger_path_xy], axis=1)
-            _clockwise = True
-        else:
-            rospy.logwarn("finger path generation failed. collision occur with every path")
-            return self.path_failed("failed finger path generation")
-                
-        # Set pushing velocity
-        _vel = self.planner_config["swipe_speed"] # m/s
-        # Calculate push spent time
-        _spent_time = rospy.Duration(0)
-        _path_lenght = 0
-
-        finger_path = PoseArray()
-        finger_path.header.stamp = rospy.Time.now()
-        finger_path.header.frame_id = camera_pose_msg.header.frame_id # base link of doosan m1013
-
-        finger_path_xy = np.array(finger_path_xy).T
-        for idx, point in enumerate(finger_path_xy):
-            if idx is not (len(finger_path_xy) - 1):
-                _angle_vector = finger_path_xy[idx + 1] - finger_path_xy[idx]
-                _lengh = np.linalg.norm(_angle_vector)
-                _path_lenght += _lengh
-                _spent_time += rospy.Duration.from_sec(_lengh / _vel)
-            else:
-                _angle_vector = finger_path_xy[idx] - finger_path_xy[idx - 1]
-            _angle = np.arctan2(_angle_vector[1], _angle_vector[0])
-            _pose = Pose()
-            # finger position x, y
-            _pose.position.x, _pose.position.y = point[0], point[1]
-            # finger position z along table pose
-            _pose.position.z = self.planner_config['height'] + self.cal_path_height(point[0], point[1])
-            # finger orientation matrix
-            path_rot_matrix = np.dot(rot_matrix, tft.euler_matrix(_angle + np.deg2rad(self.gripper_config["z_angle"]), 0, 0, axes='rzxy'))
-            # finger orientation x, y, z, w
-            _pose.orientation.x, _pose.orientation.y, _pose.orientation.z, _pose.orientation.w = tft.quaternion_from_matrix(path_rot_matrix)
-            finger_path.poses.append(_pose)
-
-        # Jaeseog code
-        # _is_collision is True when start with e_path_xy
-        eef_path, bf_path = cartesianTraj2EETraj(finger_path, gripper_radius = self.gripper_config["width"], margin_angle = np.deg2rad(0), alpha = 0.01, clock_wise = not _clockwise)
-        _clockwise = 1 if _clockwise else -1
+        # Choose closest path in available path
+        _best_path = -1
+        _best_path_lengh = 1e9
+        for idx in range(start_path_num):
+            _path_to_base = np.linalg.norm(start_path_list[idx,:,0] + start_path_list[idx,:,start_path_lengh]) / 2
+            if _path_to_base < _best_path_lengh and _is_available[idx]:
+                _best_path = idx
+                _best_path_lengh = _path_to_base
+        _best_path = 3
         
-        rospy.loginfo("Swipe ROS path generation finished")
         # vis
         if self.planner_config["visualize"]:
             origin_target_ellipse = Ellipse(target_edge.edge_xyz[:,0], target_edge.edge_xyz[:,1])
             rand_idx = np.random.randint(0, len(target_edge.edge_xyz), 1000)
             
             fig = plt.figure(figsize=(10,10))
-            ax1 = fig.add_subplot(221)
-            ax2 = fig.add_subplot(222)
+            ax1 = fig.add_subplot(321)
+            ax2 = fig.add_subplot(322)
             ax1.set_xlim([map_corners[0] - 0.1, map_corners[1] + 0.1])
             ax1.set_ylim([map_corners[2] - 0.1, map_corners[3] + 0.1])
             ax2.set_xlim([map_corners[0] - 0.1, map_corners[1] + 0.1])
@@ -320,18 +277,33 @@ class SwipeAcrossTheDishesServer(object):
                 x, y = target_ellipse.point(checker.end)
                 ax2.scatter(x, y)
 
+            for i, sub_plot in enumerate([323, 324, 325, 326]):  # 4, 5, 6번 서브플롯
+                ax_clone = fig.add_subplot(sub_plot)
+                ax_clone.set_xlim([map_corners[0] - 0.1, map_corners[1] + 0.1])
+                ax_clone.set_ylim([map_corners[2] - 0.1, map_corners[3] + 0.1])
+                for obs in obs_ellipse_list:
+                    x, y = obs.get_ellipse_pts()
+                    ax_clone.scatter(obs.center[0], obs.center[1])
+                    ax_clone.plot(x, y, color='darkred')
+                
+                if _is_available[i]: _color = "olive"
+                else:                _color = "black"
+                
+                ax_clone.plot(start_path_list[i][0], start_path_list[i][1], _color, linewidth=4)
+                ax_clone.plot(finger_path_xy_base[0], finger_path_xy_base[1], _color, linewidth=4)
+                
+                ax_clone.grid(True)
+                ax_clone.set_aspect('equal')
+
             for obs in obs_edge_list:
                 rand_idx = np.random.randint(0, len(obs.edge_xyz), 1000)
                 ax1.plot(obs.edge_xyz[rand_idx, 0], obs.edge_xyz[rand_idx, 1], 'ko')
 
-
             ax1.fill_between(target_edge.edge_xyz[:,0], target_edge.edge_xyz[:,1], color='gray')
             ax1.plot(target_edge.edge_xyz[rand_idx, 0], target_edge.edge_xyz[rand_idx, 1], 'ko')
 
-            ax2.plot(s_path_xy[0], s_path_xy[1], 'olive', linewidth=4)
-            ax2.plot(e_path_xy[0], e_path_xy[1], 'olive', linewidth=4)
-            finger_path_xy = np.array(finger_path_xy).T
-            ax2.plot(finger_path_xy[0], finger_path_xy[1], 'lime',linewidth=8)
+            ax2.plot(finger_path_xy_base[0], finger_path_xy_base[1], 'lime',linewidth=8)
+            ax2.plot(start_path_list[_best_path,:,:][0], start_path_list[_best_path,:,:][1], 'lime', linewidth=8)
 
             x, y = origin_target_ellipse.get_ellipse_pts()
             ax2.fill_between(x, y, color='gray')
@@ -339,14 +311,6 @@ class SwipeAcrossTheDishesServer(object):
             origin_target_ellipse.resize(self.planner_config["dish_r_margin"], self.planner_config["dish_r_margin"])
             x, y = origin_target_ellipse.get_ellipse_pts()
             ax2.plot(x, y, color='black')
-
-            # _temp = self.is_bound_out_point(target_ellipse.center, obs_ellipse_list, np.deg2rad(25), 0.1, table_center[0:2], table_rotation[0:2])
-            # for point in _temp:
-            #     ax2.scatter(point[0], point[1])
-                
-            # _temp = self.is_bound_out_point(target_ellipse.center, obs_ellipse_list, np.deg2rad(-25), 0.1, table_center[0:2], table_rotation[0:2])
-            # for point in _temp:
-            #     ax2.scatter(point[0], point[1])
                 
             ax1.grid(True)
             ax2.grid(True)
@@ -354,28 +318,88 @@ class SwipeAcrossTheDishesServer(object):
             ax2.set_aspect('equal')
                 
             plt.show()
+        
+        res = GetSwipeDishesPathResponse()   
+        res.path_list = []
+                        
+        # generate available path
+        if _best_path == -1:
+            rospy.logwarn("finger path generation failed. collision occur with every path")
+            return self.path_failed("failed finger path generation")
+        
+        for idx in range(start_path_num):
+            if not _is_available[idx]:
+                break
+        
+            if idx % 2 == 1:
+                rospy.loginfo("start making #{} finger path (cw)".format(idx + 1))
+                _clockwise = True
+                finger_path_xy = np.flip(finger_path_xy_base, axis=1)
+                finger_path_xy = np.concatenate([start_path_list[idx], finger_path_xy[:,1:]], axis=1)
+            else:
+                rospy.loginfo("start making #{} finger path (ccw)".format(idx + 1))
+                _clockwise = False
+                finger_path_xy = np.concatenate([start_path_list[idx], finger_path_xy_base[:,1:]], axis=1)
 
-        # Make path ros msg as moveit_msgs::CartesianTrajectory()
-        path_msg = CartesianTrajectory()
-        path_msg.header.stamp = rospy.Time.now()
-        path_msg.header.frame_id = camera_pose_msg.header.frame_id # base link of doosan m1013
-        path_msg.tracked_frame = "end_effector" # end effector of gripper
-        path_msg.points =[]
+            # Set pushing velocity
+            _vel = self.planner_config["swipe_speed"] # m/s
+            # Calculate push spent time
+            _spent_time = rospy.Duration(0)
+            _path_lenght = 0
 
-        for each_point in eef_path.poses:
-            _angle = tft.euler_from_quaternion([each_point.orientation.x, each_point.orientation.y, each_point.orientation.z, each_point.orientation.w],axes='rxyz')
-            # set each CartesianTrajectoryPoint()
-            _point = CartesianTrajectoryPoint()
-            # whole spent time
-            _point.time_from_start = _spent_time
-            # point position
-            _point.point.pose.position = each_point.position
-            _point.point.pose.position.z += self.gripper_config['height']
-            # apply gripper tilt angle (table angle, gripper push tilt angle)
-            path_rot_matrix = np.dot(rot_matrix, tft.euler_matrix(_angle[2] + np.deg2rad(self.gripper_config["z_angle"] + _clockwise * self.gripper_config["finger_angle"] / 2), -np.pi, 0, axes='rzxy'))
-            # gripper orientation
-            _point.point.pose.orientation.x, _point.point.pose.orientation.y, _point.point.pose.orientation.z, _point.point.pose.orientation.w = tft.quaternion_from_matrix(path_rot_matrix)
-            path_msg.points.append(_point)
+            finger_path = PoseArray()
+            finger_path.header.stamp = rospy.Time.now()
+            finger_path.header.frame_id = camera_pose_msg.header.frame_id # base link of doosan m1013
+
+            finger_path_xy = np.array(finger_path_xy).T
+            for idx, point in enumerate(finger_path_xy):
+                if idx is not (len(finger_path_xy) - 1):
+                    _angle_vector = finger_path_xy[idx + 1] - finger_path_xy[idx]
+                    _lengh = np.linalg.norm(_angle_vector)
+                    _path_lenght += _lengh
+                    _spent_time += rospy.Duration.from_sec(_lengh / _vel)
+                else:
+                    _angle_vector = finger_path_xy[idx] - finger_path_xy[idx - 1]
+                _angle = np.arctan2(_angle_vector[1], _angle_vector[0])
+                _pose = Pose()
+                # finger position x, y
+                _pose.position.x, _pose.position.y = point[0], point[1]
+                # finger position z along table pose
+                _pose.position.z = self.planner_config['height'] + self.cal_path_height(point[0], point[1])
+                # finger orientation matrix
+                path_rot_matrix = np.dot(rot_matrix, tft.euler_matrix(_angle + np.deg2rad(self.gripper_config["z_angle"]), 0, 0, axes='rzxy'))
+                # finger orientation x, y, z, w
+                _pose.orientation.x, _pose.orientation.y, _pose.orientation.z, _pose.orientation.w = tft.quaternion_from_matrix(path_rot_matrix)
+                finger_path.poses.append(_pose)
+
+            # Jaeseog code
+            # _is_collision is True when start with start_path_list[1,:,:]
+            eef_path, bf_path = cartesianTraj2EETraj(finger_path, gripper_radius = self.gripper_config["width"], margin_angle = np.deg2rad(0), alpha = 0.01, clock_wise = not _clockwise, start_idx = start_path_lengh)
+            _clockwise = 1 if _clockwise else -1
+            
+            # Make path ros msg as moveit_msgs::CartesianTrajectory()
+            path_msg = CartesianTrajectory()
+            path_msg.header.stamp = rospy.Time.now()
+            path_msg.header.frame_id = camera_pose_msg.header.frame_id # base link of doosan m1013
+            path_msg.tracked_frame = "end_effector" # end effector of gripper
+            path_msg.points =[]
+
+            for each_point in eef_path.poses:
+                _angle = tft.euler_from_quaternion([each_point.orientation.x, each_point.orientation.y, each_point.orientation.z, each_point.orientation.w],axes='rxyz')
+                # set each CartesianTrajectoryPoint()
+                _point = CartesianTrajectoryPoint()
+                # whole spent time
+                _point.time_from_start = _spent_time
+                # point position
+                _point.point.pose.position = each_point.position
+                _point.point.pose.position.z += self.gripper_config['height']
+                # apply gripper tilt angle (table angle, gripper push tilt angle)
+                path_rot_matrix = np.dot(rot_matrix, tft.euler_matrix(_angle[2] + np.deg2rad(self.gripper_config["z_angle"] + _clockwise * self.gripper_config["finger_angle"] / 2), -np.pi, 0, axes='rzxy'))
+                # gripper orientation
+                _point.point.pose.orientation.x, _point.point.pose.orientation.y, _point.point.pose.orientation.z, _point.point.pose.orientation.w = tft.quaternion_from_matrix(path_rot_matrix)
+                path_msg.points.append(_point)
+            res.path_list.append(path_msg)
+            
         rospy.loginfo("Swipe ROS path generation finished")
 
         if self.planner_config["publish_vis_topic"]:
@@ -383,12 +407,12 @@ class SwipeAcrossTheDishesServer(object):
             first_path_msg = Path()
             first_path_msg.header.frame_id = camera_pose_msg.header.frame_id
             first_path_msg.header.stamp = rospy.Time.now()
-            for each_point in finger_path.poses:
+            for idx in range(start_path_lengh, len(finger_path.poses)):
                 _pose_stamped = PoseStamped()
                 _pose_stamped.header.stamp = rospy.Time.now()
                 _pose_stamped.header.frame_id = camera_pose_msg.header.frame_id
-                _pose_stamped.pose.position = each_point.position
-                _pose_stamped.pose.orientation = each_point.orientation
+                _pose_stamped.pose.position = finger_path.poses[idx].position
+                _pose_stamped.pose.orientation = finger_path.poses[idx].orientation
                 first_path_msg.poses.append(_pose_stamped)
 
             second_path_msg = Path()
@@ -422,8 +446,7 @@ class SwipeAcrossTheDishesServer(object):
             
         rospy.loginfo("Swipe Path Time: {0}".format(_spent_time.to_sec()))
         rospy.loginfo("Swipe Path Lenght: {0}".format(_path_lenght))
-        res = GetSwipeDishesPathResponse()   
-        res.path = path_msg
+
         if len(path_msg.points) == 0:
             rospy.loginfo('Path generation failed\n')
             res.plan_successful = False

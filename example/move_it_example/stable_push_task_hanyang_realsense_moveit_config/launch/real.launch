@@ -1,0 +1,102 @@
+<launch>
+  <arg name="ns" default="dsr01"/>
+  <arg name="model" default="m1013"/>
+  <arg name="host" default="115.145.159.213"/>
+  <arg name="port" default="12345"/>
+  <arg name="mode" default="real"/>
+  <!-- <arg name="mode" default="virtual"/> -->
+  <arg name="gripper" default="none"/>
+  <arg name="mobile" default="none"/>
+
+  <!-- specify the planning pipeline -->
+  <arg name="pipeline" default="ompl" />
+
+  <!-- By default, we are not in debug mode -->
+  <arg name="debug" default="false" />
+
+  <!-- By default, we will load or override the robot_description -->
+  <arg name="load_robot_description" default="true"/>
+
+  <!-- Choose controller manager: fake, simple, or ros_control -->
+  <arg name="moveit_controller_manager" default="simple" />
+  <!-- Set execution mode for fake execution controllers -->
+  <arg name="fake_execution_type" default="interpolate" />
+
+  <!-- By default, hide joint_state_publisher's GUI in 'fake' controller_manager mode -->
+  <arg name="use_gui" default="false" />
+  <arg name="use_rviz" default="true" />
+
+  <!-- If needed, broadcast static tf for robot root -->
+
+  <!-- We do not have a real robot connected, so publish fake joint states via a joint_state_publisher
+        MoveIt's fake controller's joint states are considered via the 'source_list' parameter -->
+  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" unless="$(arg use_gui)">
+    <rosparam param="source_list">[dsr01m1013/joint_states]</rosparam>
+  </node>
+  <!-- If desired, a GUI version is available allowing to move the simulated robot around manually
+        This corresponds to moving around the real robot without the use of MoveIt. -->
+
+  <!-- Given the published joint states, publish tf for the robot links -->
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true" output="screen" />
+
+  <!-- Run the main MoveIt executable without trajectory execution (we do not have controllers configured by default) -->
+  <include file="$(dirname)/move_group.launch">
+    <arg name="allow_trajectory_execution" value="true"/>
+    <arg name="moveit_controller_manager" value="$(arg moveit_controller_manager)" />
+    <arg name="fake_execution_type" value="$(arg fake_execution_type)"/>
+    <arg name="info" value="true"/>
+    <arg name="debug" value="$(arg debug)"/>
+    <arg name="pipeline" value="$(arg pipeline)"/>
+    <arg name="load_robot_description" value="$(arg load_robot_description)"/>
+  </include>
+
+  <!-- Run Rviz and load the default config to see the state of the move_group node -->
+  <include file="$(dirname)/moveit_rviz.launch" if="$(arg use_rviz)">
+    <arg name="rviz_config" value="$(dirname)/moveit.rviz"/>
+    <arg name="debug" value="$(arg debug)"/>
+  </include>
+
+  <!-- m1013 real robot driver -->
+  <!-- <include file="$(dirname)/moveit_rviz.launch" if="$(arg use_rviz)"> -->
+  <!-- dsr controller 로드  -->
+    <rosparam file="$(find dsr_control)/config/dsr_control.yaml" command="load" ns="$(arg ns)$(arg model)"/>
+    <!-- load dsr_joint_trajectory_controller in controller_manager does not work. dsr_joint_trajectory_controller is handled by dsr_control_node itself. -->
+    <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false"
+          output="screen" ns="$(arg ns)$(arg model)" args="dsr_joint_publisher"/>
+
+    <!-- moveit은 멀티 arm이 안되므로 model은 참조용으로 사용 -->
+  <group if="$(eval arg('mode') == 'real')">
+    <!-- moveit은 멀티 arm이 안되므로 model은 참조용으로 사용 -->
+    <node pkg="dsr_control" type="dsr_control_node" name="$(arg ns)$(arg model)" respawn="false" output="screen" >
+      <param name="name" value="$(arg ns)"/>
+      <param name="rate" value="10"/>
+      <param name="standby" value="5000"/>
+      <param name="command" value="true"/>
+      <param name="host" value="$(arg host)"/>
+      <param name="port" value="$(arg port)"/>
+      <param name="mode" value="$(arg mode)" />
+      <param name="model" value="$(arg model)" />
+	    <param name="gripper" value="$(arg gripper)"/>
+	    <param name="mobile" value="$(arg mobile)" />
+    </node>
+  </group>
+  <group if="$(eval arg('mode') == 'virtual')">
+    <!-- moveit은 멀티 arm이 안되므로 model은 참조용으로 사용 -->
+    <node pkg="dsr_control" type="dsr_control_node" name="$(arg ns)$(arg model)" respawn="false" output="screen" >
+      <param name="name" value="$(arg ns)"/>
+      <param name="rate" value="10"/>
+      <param name="standby" value="5000"/>
+      <param name="command" value="true"/>
+      <param name="host" value="127.0.0.1"/>
+      <param name="port" value="$(arg port)"/>
+      <param name="mode" value="$(arg mode)" />
+      <param name="model" value="$(arg model)" />
+	    <param name="gripper" value="$(arg gripper)"/>
+	    <param name="mobile" value="$(arg mobile)" />
+    </node>
+
+    <!-- Run Doosan Robot emulator in virtual mode -->
+    <node name="drcf" pkg="common" type="run_drcf.sh" output="screen" required="true"  ns="$(arg ns)" args="$(arg port) $(arg model)" />
+	</group>
+
+</launch>

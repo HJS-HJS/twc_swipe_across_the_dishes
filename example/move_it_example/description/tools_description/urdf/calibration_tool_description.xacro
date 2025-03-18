@@ -1,0 +1,51 @@
+<?xml version="1.0" ?>
+<robot name="m1013_set" xmlns:xacro="http://ros.org/wiki/xacro">
+	<xacro:property name="PI" value="3.1415926535897931"/>
+
+  <!-- link -->
+  <link name="m1013_to_irb120_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+      <geometry>
+        <mesh filename="package://tools_description/meshes/manipulator/m1013_to_irb120.STL" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="m1013_to_irb120_material">
+        <color rgba="0.0 1.0 0.0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="0.1" length="0.2"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- calibration tool -->
+  <xacro:include filename="$(find camera_calibration_tool_irb120_description)/urdf/camera_calibration_tool_irb120_macro.xacro"/>
+  <xacro:calib_tool_prefix prefix=""/>
+
+  <joint name="cali_mount_joint" type="fixed">
+    <parent link="m1013_to_irb120_link"/>
+    <child link="calib_irb120_mount"/>
+    <origin xyz="0 0 0.016" rpy="${-PI/2} 0 0"/>
+	</joint>
+
+  <!-- calibration board center point -->
+  <link name="calib_center_point">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <sphere radius="0.005"/>
+        </geometry>
+        <material name="calib_center_point">
+          <color rgba="1 0 1 0.1"/>
+        </material>
+      </visual>
+  </link>
+  <joint name="calib_center_point_joint" type="fixed">
+    <parent link="calib_irb120_mount"/>
+    <child link="calib_center_point"/>
+    <origin xyz="0 -0.13 0" rpy="0 0 0"/>
+	</joint>
+
+</robot>

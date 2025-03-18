@@ -1,0 +1,9 @@
+<launch>
+   
+    <!-- <param name = "robot_description" textfile = "$(find hanyang_gripper)/urdf/Gripper_without_Gimbal_for_SolidWorks_ver1_1_URDF_(Serial).urdf" /> -->
+    <param name = "robot_description" textfile = "$(find hanyang_gripper)/urdf/hanyang_gripper_description.urdf" />
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+    <node name="joint_state_publisher_gui" pkg="joint_state_publisher_gui" type="joint_state_publisher_gui" />
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find hanyang_gripper)/urdf/urdf.rviz"/>
+
+</launch>

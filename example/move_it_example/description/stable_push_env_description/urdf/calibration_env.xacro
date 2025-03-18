@@ -1,0 +1,109 @@
+<?xml version="1.0" ?>
+<robot name="stable_push_env" xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <!-- environments -->
+  <link name="world_base" />
+  <xacro:include filename="$(find honeycomb_table_description)/urdf/honeycomb_table.urdf.xacro"/>
+  <joint name="world-env_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <parent link="world_base"/>
+    <child link="table_frame"/>
+  </joint>
+
+  <!-- indy7 -->
+	<xacro:include filename="$(find stable_push_env_description)/urdf/indy7_macro.xacro"/>
+  <xacro:indy7_prefix prefix="indy7_"/>
+  <joint name="world-indy7_joint" type="fixed">
+    <parent link="world_base"/>
+    <child link="indy7_link0"/>
+    <origin xyz="0.525 -0.025 0.016" rpy="0 0 ${PI}"/>
+	</joint>
+
+  <!-- handeye camera -->
+  <xacro:include filename="$(find zivid2_indy7_handeye_description)/urdf/zivid2_indy7_handeye_description.urdf"/>
+  <joint name="indy7-zivid2_joint" type="fixed">
+    <parent link="indy7_tcp"/>
+    <child link="handeye_mount_robot_side_link"/>
+    <origin xyz="0 0 0" rpy="0 0 ${PI}"/>
+  </joint>
+
+  <!-- epick -->
+  <xacro:include filename="$(find robotiq_epick_gripper_extend_visualization)/urdf/epick_extend_visualize.xacro"/>
+  <joint name="zivid2-epick_joint" type="fixed">
+    <parent link="handeye_mount_robot_side_link"/>
+    <child link="epick_base"/>
+    <origin xyz="0 0 0.016" rpy="0 0 ${PI}"/>
+  </joint>
+  <link name="epick_grasp_point">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <box size="0.015 0.015 0.015"/>
+        </geometry>
+        <material name="epick_grasp_point">
+          <color rgba="1 1 0 0.1"/>
+        </material>
+      </visual>
+  </link>
+  <joint name="epick_grasp_point" type="fixed">
+    <parent link="indy7_tcp"/>
+    <child link="epick_grasp_point"/>
+    <origin xyz="0 0 0.237" rpy="0 0 0"/>
+	</joint>
+
+  <!-- doosan -->
+  <xacro:include filename="$(find stable_push_env_description)/urdf/macro.m1013.white.xacro" />
+  <xacro:m1013 namespace="m1013_"/>
+  <joint name="world-doosan_joint" type="fixed">
+    <parent link="world_base"/>
+    <child link="m1013_base_0"/>
+    <origin xyz="-0.6875 -0.0125 0" rpy="0 0 ${PI}"/>
+  </joint>
+
+  <!-- m1013 to irb120 mount -->
+  <link name="m1013_to_irb120_link">
+    <collision>
+        <geometry>
+            <cylinder radius="0.1" length="0.2"/>
+        </geometry>
+    </collision>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+      <geometry>
+        <mesh filename="package://stable_push_env_description/meshes/m1013_to_irb120.STL" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+  </link>
+  <joint name="m1013_to_irb120_joint" type="fixed">
+    <parent link="m1013_link6"/>
+    <child link="m1013_to_irb120_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- calibartion -->
+ 	<xacro:include filename="$(find camera_calibration_tool_irb120_description)/urdf/camera_calibration_tool_irb120_macro.xacro"/> 
+  <xacro:calib_tool_prefix prefix="m1013_"/>
+  <joint name="m1013-calib_joint" type="fixed">
+    <parent link="m1013_to_irb120_link"/>
+    <child link="m1013_calib_irb120_mount"/>
+    <origin xyz="0 0 0.016" rpy="-1.570796327 0 -1.570796327"/>
+	</joint>
+
+    <!-- irb120 calibration board center point -->
+  <link name="m1013_calib_center_point">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <sphere radius="0.005"/>
+        </geometry>
+        <material name="m1013_calib_center_point">
+          <color rgba="1 0 1 0.1"/>
+        </material>
+      </visual>
+  </link>
+  <joint name="m1013_calib_center_point_joint" type="fixed">
+    <parent link="m1013_calib_irb120_mount"/>
+    <child link="m1013_calib_center_point"/>
+    <origin xyz="0 -0.13 0" rpy="0 0 0"/>
+	</joint>
+</robot>

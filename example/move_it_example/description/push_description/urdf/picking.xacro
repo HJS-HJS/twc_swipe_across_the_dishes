@@ -1,0 +1,152 @@
+<?xml version="1.0" ?>
+<robot name="picking" xmlns:xacro="http://ros.org/wiki/xacro">
+	<xacro:property name="PI" value="3.1415926535897931"/>
+  
+  <!-- gripper -->
+  <xacro:arg name="gripper"            default="robotiq"/>   <!-- robotiq, calibration, hanyang -->
+
+  <!-- m1013 -->
+  <xacro:arg name="manipulator_px"     default="-0.6875"/>   <!-- [-0.8 ~ 0.8] [m] -->
+  <xacro:arg name="manipulator_py"     default="-0.0125"/>   <!-- [-0.4 ~ 0.4] [m] -->
+  <xacro:arg name="manipulator_pz"     default="0.0000"/>    <!-- 0[m] -->
+  <xacro:arg name="manipulator_rx"     default="0.0000"/>    <!-- [rad] -->
+  <xacro:arg name="manipulator_ry"     default="0.0000"/>    <!-- [rad] -->
+  <xacro:arg name="manipulator_rz"     default="0.0000"/>    <!-- [rad] -->
+
+  <!-- camera stand -->
+  <xacro:arg name="camera_stand_px"    default="0.7240"/>    <!-- [-0.8 ~ 0.8] [m] -->
+  <xacro:arg name="camera_stand_py"    default="0.0505"/>    <!-- [-0.4 ~ 0.4] [m] -->
+  <xacro:arg name="camera_stand_pz"    default="0.0000"/>    <!-- 0[m] -->
+  <xacro:arg name="camera_stand_rx"    default="0.0000"/>    <!-- [rad] -->
+  <xacro:arg name="camera_stand_ry"    default="0.0000"/>    <!-- [rad] -->
+  <xacro:arg name="camera_stand_rz"    default="${PI}"/>     <!-- [rad] -->
+  <xacro:arg name="camera_height_pz"   default="0.9985"/>    <!-- [0.045 ~ 0.973] [m] -->
+  <xacro:arg name="camera_lengh_px"    default="0.277"/>     <!-- [0.075 ~ 0.277] [m] -->
+  <xacro:arg name="camera_angle"       default="20"/>        <!-- [0 ~ 1.5] [rad] -->
+  
+  <!-- depth camera -->
+  <xacro:arg name="camera_type"        default="d4155"/>      <!-- d415 -->
+  <xacro:arg name="camera_tilt"        default="0"/>         <!-- [-1.5 ~ 1.5] [rad] -->
+  <xacro:arg name="camera_mesh"        default="false"/>     <!-- true, false -->
+
+  <!-- property set -->
+  <xacro:property name="gripper_type"  value="$(arg gripper)"/>
+  <xacro:property name="camera_tilt"   value="$(arg camera_tilt)"/>
+  <xacro:property name="camera_type"   value="$(arg camera_type)"/>
+  <xacro:property name="camera_mesh"   value="$(arg camera_mesh)"/>
+
+  <!-- world base link -->
+  <link name="world_base"/>
+
+  <!-- =================================================================================== -->
+  <!-- ============================== enviroments ======================================== -->
+  <!-- =================================================================================== -->
+  <!-- honeycomb with plate -->
+  <xacro:include filename="$(find honeycomb_and_plate_description)/urdf/honeycomb_and_plate_description.xacro"/>
+  <joint name="world-env_joint" type="fixed">
+    <parent link="world_base"/>
+    <child link="table_link"/>
+    <origin 
+      xyz="0 0 0" 
+      rpy="0 0 0"/>
+  </joint>
+
+  <!-- =================================================================================== -->
+  <!-- =============================== robot arm ========================================= -->
+  <!-- =================================================================================== -->
+  <!-- m1013 doosan  -->
+  <xacro:include filename="$(find tools_description)/urdf/m1013_description.xacro"/>
+  <joint name="table-manipulator_joint" type="fixed">
+    <parent link="world_base"/>
+    <child link="manipulator_base_link"/>
+    <origin 
+      xyz="$(arg manipulator_px) $(arg manipulator_py) $(arg manipulator_pz)"
+      rpy="$(arg manipulator_rx) $(arg manipulator_ry) $(arg manipulator_rz)"/>
+  </joint>
+
+  <!-- =================================================================================== -->
+  <!-- ================================ gripper ========================================== -->
+  <!-- =================================================================================== -->
+  <!-- robotiq -->
+  <xacro:if value="${gripper_type == 'robotiq'}">
+    <xacro:include filename="$(find tools_description)/urdf/robotiq_description.xacro"/>
+    <joint name="m1013-mount_joint" type="fixed">
+      <parent link="link6"/>
+      <child link="m1013_to_irb120_link"/>
+      <origin
+        xyz="0 0 0" 
+        rpy="0 0 0"/>
+    </joint>
+  </xacro:if>
+  <!-- hanyang -->
+  <xacro:if value="${gripper_type == 'hanyang'}">
+    <xacro:include filename="$(find hanyang_gripper)/urdf/hanyang_gripper_description.urdf"/>
+    <joint name="m1013-mount_joint" type="fixed">
+      <parent link="link6"/>
+      <child link="hanyang_base_link"/>
+      <origin 
+        xyz="0 0 0" 
+        rpy="${PI} 0 ${(180 + 13.1825 - 45) * PI / 180}"/>
+    </joint>
+    <link name="grasp_point">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <box size="0.015 0.015 0.015"/>
+        </geometry>
+        <material name="grasp_point">
+          <color rgba="1 0 1 0.1"/>
+        </material>
+      </visual>
+    </link>
+
+    <joint name="grasp_point" type="fixed">
+      <parent link="link6"/>
+      <child link="grasp_point"/>
+      <origin xyz="0 0 0.343421" rpy="0 0 0"/>
+    </joint>
+  </xacro:if>
+  <!-- calibration tool -->
+  <xacro:if value="${gripper_type == 'calibration'}">
+    <xacro:include filename="$(find tools_description)/urdf/calibration_tool_description.xacro"/>
+    <joint name="m1013-mount_joint" type="fixed">
+      <parent link="link6"/>
+      <child link="m1013_to_irb120_link"/>
+      <origin 
+        xyz="0 0 0" 
+        rpy="0 0 0"/>
+    </joint>
+  </xacro:if>
+
+  <!-- =================================================================================== -->
+  <!-- ============================= depth camera stand ================================== -->
+  <!-- =================================================================================== -->
+  <!-- depth camera stand-->
+  <!-- import xacro -->
+  <xacro:include filename="$(find tools_description)/urdf/camera_stand_description.xacro"/>
+  <xacro:camera_stand_set Height="$(arg camera_height_pz)" Lengh="$(arg camera_lengh_px)" Angle = "$(arg camera_angle)"/>
+  <joint name="table-camera_stand_joint" type="fixed">
+    <parent link="world_base"/>
+    <child link="cam_stand_base_link"/>
+    <origin
+      xyz="$(arg camera_stand_px) $(arg camera_stand_py) $(arg camera_stand_pz)"
+      rpy="$(arg camera_stand_rx) $(arg camera_stand_ry) $(arg camera_stand_rz)"/>
+  </joint>
+
+  <!-- =================================================================================== -->
+  <!-- ================================ depth camera ===================================== -->
+  <!-- =================================================================================== -->
+  <!-- RealSense415 -->
+  <xacro:if value="${camera_type == 'd415'}">
+    <xacro:arg name="use_nominal_extrinsics" default="true" />
+    <xacro:arg name="add_plug" default="false" />
+    <xacro:arg name="use_mesh" default="${camera_mesh}" />
+    <xacro:include filename="$(find realsense2_description)/urdf/_${camera_type}.urdf.xacro" />
+    <xacro:sensor_d415 parent="cam_link" use_nominal_extrinsics="$(arg use_nominal_extrinsics)" add_plug="$(arg add_plug)" use_mesh="$(arg use_mesh)">
+      <origin 
+        xyz="0.01 0 -0.0115" 
+        rpy="0 ${camera_tilt*PI/180} 0"/>
+    </xacro:sensor_d415>
+  </xacro:if>
+
+</robot>

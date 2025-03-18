@@ -1,0 +1,18 @@
+<?xml version="1.0" ?>
+<robot name="m1013_set" xmlns:xacro="http://ros.org/wiki/xacro">
+	<xacro:property name="PI" value="3.1415926535897931"/>
+
+  <!-- base link -->
+  <link name="manipulator_base_link"/>
+
+  <!-- m1013 doosan robot arm -->
+  <xacro:include filename="$(find dsr_description)/xacro/macro.m1013.white.xacro"/>
+  <xacro:m1013 namespace="m1013_"/>
+
+  <joint name="world-m1013_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <parent link="manipulator_base_link"/>
+    <child link="base_0"/>
+  </joint>
+
+</robot>

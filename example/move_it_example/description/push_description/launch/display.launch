@@ -1,0 +1,23 @@
+<launch>
+    <arg name="gui"       default="false"/>
+    <!-- <arg name="gui"   default ="true"/> -->
+    <!-- <arg name="gripper"   default="robotiq"/> -->
+    <!-- <arg name="gripper"   default="hanyang"/> -->
+    <arg name="gripper"   default="-"/>
+    <!-- <arg name="gripper"   default="calibration"/> -->
+
+    <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find push_description)/urdf/picking.xacro' 
+        gripper:=$(arg gripper)"/>
+
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+
+    <group if="$(eval arg('gui') == true)">
+        <node name="joint_state_publisher_gui" pkg="joint_state_publisher_gui" type="joint_state_publisher_gui" />
+    </group>
+    <group if="$(eval arg('gui') == false)">
+        <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
+    </group>
+
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find push_description)/rviz/vis.rviz"/>
+
+</launch>

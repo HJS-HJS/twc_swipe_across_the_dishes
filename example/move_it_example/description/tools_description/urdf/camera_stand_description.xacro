@@ -1,0 +1,168 @@
+<?xml version="1.0" ?>
+<robot name="camera_stand_set" xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:macro name="camera_stand_set" params="Height Lengh Angle">
+  
+	<!-- arg set -->
+  <xacro:property name="H"      value="${Height}"/>
+  <xacro:property name="L"      value="${Lengh}"/>
+  <xacro:property name="A"      value="${Angle}"/>
+
+  <!-- not changeable property -->
+  <xacro:property name="PI"     value="3.1415926535897931"/>	
+  
+  <!-- material color set -->
+  <material name="camera_black">
+    <color rgba="0.0 0.0 0.0 1.0"/>
+  </material>
+  <material name="camera_white">
+    <color rgba="1.0 1.0 1.0 1.0"/>
+  </material>
+  <material name="camera_light_gray">
+    <color rgba="0.7 0.7 0.7 1.0"/>
+  </material>
+  <material name="camera_dark_gray">
+    <color rgba="0.3 0.3 0.3 1.0"/>
+  </material>
+  <material name="cam_stand_color">
+    <color rgba="0.3 0.3 0.3 1.0"/>
+  </material>
+
+
+  <!-- base link -->
+  <link name="cam_stand_base_link"/>
+
+  <!-- stand base link -->
+  <!-- link -->
+  <link name="cam_stand_link">
+    <visual>
+      <origin xyz="0.0475 0.065 0" rpy="${PI/2} 0 -${PI/2}"/>
+      <geometry>
+        <mesh filename="package://tools_description/meshes/camera_stand/camera_stand_base.STL" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="cam_stand_color"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.505" rpy="0 0 0" />
+      <geometry>
+        <box size="0.1 0.1 1.010"/>
+      </geometry>
+    </collision>
+  </link> 
+  <!-- joint -->
+  <joint name="camera_base-stand_joint" type="fixed">
+    <parent link="cam_stand_base_link"/>
+    <child link="cam_stand_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+
+  <!-- stand arm link -->
+  <!-- link -->
+  <link name="cam_stand_arm_link">
+    <visual>
+      <origin xyz="0.32 0.035 -0.081" rpy="${PI/2} 0 -${PI/2}"/>
+      <geometry>
+        <mesh filename="package://tools_description/meshes/camera_stand/camera_stand_arm.STL" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="camera_light_gray"/>
+    </visual>
+    <collision>
+      <origin xyz="0.16 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.320 0.05 0.05"/>
+      </geometry>
+    </collision>
+  </link>
+  <!-- joint -->
+  <joint name="camera_base-arm_joint" type="fixed">
+    <parent link="cam_stand_link"/>
+    <child link="cam_stand_arm_link"/>
+    <origin xyz="0 0 ${H}" rpy="0 0 0"/>
+  </joint>
+
+
+  <!-- mount link -->
+  <!-- link -->
+  <link name="cam_stage_mount_link">
+    <visual>
+      <origin xyz="-0.043 -0.035 -0.043" rpy="${PI/2} 0 ${PI/2}"/>
+      <geometry>
+        <mesh filename="package://tools_description/meshes/camera_stand/camera_stage_mount.STL" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="camera_white"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.009" rpy="0 0 0" />
+      <geometry>
+        <box size="0.086 0.070 0.105"/>
+      </geometry>
+    </collision>
+  </link>
+  <!-- joint -->
+  <joint name="camera_arm-stage_mount_joint" type="fixed">
+    <parent link="cam_stand_arm_link"/>
+    <child link="cam_stage_mount_link"/>
+    <origin xyz="${L} 0 0" rpy="0 0 0"/>
+  </joint>
+
+
+  <!-- stage link -->
+  <link name="cam_stage_link">
+    <visual>
+      <origin xyz="0 0.01235 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.080 0.0247 0.080"/>
+      </geometry>
+      <material name="camera_white"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0.01235 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.080 0.0247 0.080"/>
+      </geometry>
+    </collision>
+  </link>
+  <!-- joint -->
+  <joint name="camera_stand_mount-stage_joint" type="fixed">
+    <parent link="cam_stage_mount_link"/>
+    <child link="cam_stage_link"/>
+    <origin xyz="0 0.032 0" rpy="-0.04 0 -0.01"/>
+  </joint>
+
+
+  <!-- mount link -->
+  <link name="cam_mount_link">
+    <visual>
+      <!-- <origin xyz="0.04  0 -0.055" rpy="${PI/2} -${PI/2} ${PI}"/> -->
+      <origin xyz="-0.055 0 -0.04" rpy="${PI/2} -${PI/2} ${PI}"/>
+      <geometry>
+        <mesh filename="package://tools_description/meshes/camera_stand/camera_mount.STL" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="camera_white"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0.02 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.080 0.040 0.110"/>
+      </geometry>
+    </collision>
+  </link>
+  <!-- joint -->
+  <joint name="camera_stage-mount_joint" type="fixed">
+    <parent link="cam_stage_link"/>
+    <child link="cam_mount_link"/>
+    <origin xyz="0 0.0247 0" rpy="0 ${-A*PI/180} 0"/>
+  </joint>
+
+  <!-- link for camera joint -->
+  <!-- link -->
+  <link name="cam_link"/>
+  <!-- joint -->
+  <joint name="camera_mount_cam_joint" type="fixed">
+    <parent link="cam_mount_link"/>
+    <child link="cam_link"/>
+    <origin xyz="0 0.030 -0.04" rpy="${PI/2} ${PI/2} 0"/>
+  </joint>
+
+</xacro:macro>
+</robot>

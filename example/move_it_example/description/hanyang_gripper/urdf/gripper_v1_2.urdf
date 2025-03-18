@@ -1,0 +1,571 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
+     Commit Version: 1.6.0-4-g7f85cfe  Build Version: 1.6.7995.38578
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
+<robot
+  name="hanyang_gripper">
+  <link
+    name="base_link">
+    <inertial>
+      <origin
+        xyz="0.000405794830218853 -0.000575034317928769 0.142460290115094"
+        rpy="0 0 0" />
+      <mass
+        value="1.2744973281614" />
+      <inertia
+        ixx="0.00675157228173656"
+        ixy="-5.08601327886203E-07"
+        ixz="-1.50141908794176E-07"
+        iyy="0.00675493101640454"
+        iyz="-4.29023748311569E-07"
+        izz="0.0129352311910997" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="/home/jinhwi/catkin_ws/src/doosan_hanyang/hanyang_gripper/meshes/base_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="/home/jinhwi/catkin_ws/src/doosan_hanyang/hanyang_gripper/meshes/base_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <link
+    name="Link_1_Finger1">
+    <inertial>
+      <origin
+        xyz="0.00777868105574471 -0.0283583120759109 0.0382783230469415"
+        rpy="0 0 0" />
+      <mass
+        value="0.0995555858339328" />
+      <inertia
+        ixx="3.3611232630104E-05"
+        ixy="-3.66729863950511E-06"
+        ixz="-5.25615295355014E-07"
+        iyy="2.6623775469205E-05"
+        iyz="2.23792807769362E-07"
+        izz="2.7078363208479E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="/home/jinhwi/catkin_ws/src/doosan_hanyang/hanyang_gripper/meshes/Link_1_Finger1.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.686274509803922 0.686274509803922 0.686274509803922 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="/home/jinhwi/catkin_ws/src/doosan_hanyang/hanyang_gripper/meshes/Link_1_Finger1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="Joint1"
+    type="prismatic">
+    <origin
+      xyz="0.12522 -0.0165 0.1715"
+      rpy="0 0 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="Link_1_Finger1" />
+    <axis
+      xyz="0.91804 -0.39648 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="Link4">
+    <inertial>
+      <origin
+        xyz="0.0143227742077997 0.0134212649853986 0.0242597763752223"
+        rpy="0 0 0" />
+      <mass
+        value="0.0359681183086277" />
+      <inertia
+        ixx="1.11427350261588E-05"
+        ixy="-2.19338562921698E-07"
+        ixz="1.02579644916287E-06"
+        iyy="1.07295856925724E-05"
+        iyz="-4.43016298655597E-07"
+        izz="4.68521789732718E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="/home/jinhwi/catkin_ws/src/doosan_hanyang/hanyang_gripper/meshes/Link4.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="/home/jinhwi/catkin_ws/src/doosan_hanyang/hanyang_gripper/meshes/Link4.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="Joint4"
+    type="revolute">
+    <origin
+      xyz="-0.0079626 -0.053748 0.121"
+      rpy="0 0 0" />
+    <parent
+      link="Link_1_Finger1" />
+    <child
+      link="Link4" />
+    <axis
+      xyz="-0.39648 -0.91804 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="Link5">
+    <inertial>
+      <origin
+        xyz="0.0049342995392504 0.0142080834274016 0.0251400343393445"
+        rpy="0 0 0" />
+      <mass
+        value="0.037343247146927" />
+      <inertia
+        ixx="1.09730881328261E-05"
+        ixy="-2.9808522068761E-07"
+        ixz="2.47400409641742E-06"
+        iyy="1.04115245488745E-05"
+        iyz="-1.06846035404625E-06"
+        izz="6.30423681171657E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="/home/jinhwi/catkin_ws/src/doosan_hanyang/hanyang_gripper/meshes/Link5.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.627450980392157 0.627450980392157 0.627450980392157 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="/home/jinhwi/catkin_ws/src/doosan_hanyang/hanyang_gripper/meshes/Link5.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="Joint5"
+    type="revolute">
+    <origin
+      xyz="0.0013161 0.0026994 0.06"
+      rpy="0 0 0" />
+    <parent
+      link="Link4" />
+    <child
+      link="Link5" />
+    <axis
+      xyz="-0.39648 -0.91804 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="Link_2_Finger2">
+    <inertial>
+      <origin
+        xyz="-0.0284483592024242 0.00744262060887124 0.038278323038361"
+        rpy="0 0 0" />
+      <mass
+        value="0.099555585915427" />
+      <inertia
+        ixx="3.1546613544158E-05"
+        ixy="4.85930701982919E-06"
+        ixz="4.56617920949509E-07"
+        iyy="2.8688394501146E-05"
+        iyz="3.43299783416232E-07"
+        izz="2.70783632633245E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="/home/jinhwi/catkin_ws/src/doosan_hanyang/hanyang_gripper/meshes/Link_2_Finger2.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.686274509803922 0.686274509803922 0.686274509803922 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="/home/jinhwi/catkin_ws/src/doosan_hanyang/hanyang_gripper/meshes/Link_2_Finger2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="Joint2"
+    type="prismatic">
+    <origin
+      xyz="-0.0769 -0.10019 0.1715"
+      rpy="0 0 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="Link_2_Finger2" />
+    <axis
+      xyz="-0.80238 -0.59681 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="Link6">
+    <inertial>
+      <origin
+        xyz="0.00446176956326594 -0.0191145193573793 0.0242597765911917"
+        rpy="0 0 0" />
+      <mass
+        value="0.035968120820876" />
+      <inertia
+        ixx="1.10228276388093E-05"
+        ixy="2.88568151898652E-07"
+        ixz="-8.96560485031009E-07"
+        iyy="1.08494945186023E-05"
+        iyz="-6.66859030962423E-07"
+        izz="4.68521800197593E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="/home/jinhwi/catkin_ws/src/doosan_hanyang/hanyang_gripper/meshes/Link6.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="/home/jinhwi/catkin_ws/src/doosan_hanyang/hanyang_gripper/meshes/Link6.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="Joint6"
+    type="revolute">
+    <origin
+      xyz="-0.042566 0.03377 0.121"
+      rpy="0 0 0" />
+    <parent
+      link="Link_2_Finger2" />
+    <child
+      link="Link6" />
+    <axis
+      xyz="-0.59681 0.80238 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="Link7">
+    <inertial>
+      <origin
+        xyz="0.00983740958942791 -0.0113772634559857 0.0251400307770041"
+        rpy="0 0 0" />
+      <mass
+        value="0.0373432220559856" />
+      <inertia
+        ixx="1.08100619105839E-05"
+        ixy="3.92204416068083E-07"
+        ixz="-2.16231225757161E-06"
+        iyy="1.05745437727923E-05"
+        iyz="-1.60832488386658E-06"
+        izz="6.30423097112985E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="/home/jinhwi/catkin_ws/src/doosan_hanyang/hanyang_gripper/meshes/Link7.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.627450980392157 0.627450980392157 0.627450980392157 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="/home/jinhwi/catkin_ws/src/doosan_hanyang/hanyang_gripper/meshes/Link7.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="Joint7"
+    type="revolute">
+    <origin
+      xyz="0.0016798 -0.0024895 0.06"
+      rpy="0 0 0" />
+    <parent
+      link="Link6" />
+    <child
+      link="Link7" />
+    <axis
+      xyz="-0.59681 0.80238 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="Link_3_Finger3">
+    <inertial>
+      <origin
+        xyz="0.0206696781431217 0.0209156914727177 0.0382783230151658"
+        rpy="0 0 0" />
+      <mass
+        value="0.0995555859125258" />
+      <inertia
+        ixx="2.51946659157935E-05"
+        ixy="-1.19200838967217E-06"
+        ixz="6.89973623266768E-08"
+        iyy="3.50403420711767E-05"
+        iyz="-5.67092608159154E-07"
+        izz="2.70783632862443E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="/home/jinhwi/catkin_ws/src/doosan_hanyang/hanyang_gripper/meshes/Link_3_Finger3.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.686274509803922 0.686274509803922 0.686274509803922 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="/home/jinhwi/catkin_ws/src/doosan_hanyang/hanyang_gripper/meshes/Link_3_Finger3.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="Joint3"
+    type="prismatic">
+    <origin
+      xyz="-0.048321 0.11669 0.1715"
+      rpy="0 0 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="Link_3_Finger3" />
+    <axis
+      xyz="-0.11566 0.99329 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="Link8">
+    <inertial>
+      <origin
+        xyz="-0.0187845439942071 0.00569325359976947 0.0242597760739838"
+        rpy="0 0 0" />
+      <mass
+        value="0.0359681150016338" />
+      <inertia
+        ixx="1.06429194363449E-05"
+        ixy="-6.92286997453567E-08"
+        ixz="-1.29236277576885E-07"
+        iyy="1.12293993302158E-05"
+        iyz="1.10987383623351E-06"
+        izz="4.68521782593481E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="/home/jinhwi/catkin_ws/src/doosan_hanyang/hanyang_gripper/meshes/Link8.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="/home/jinhwi/catkin_ws/src/doosan_hanyang/hanyang_gripper/meshes/Link8.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="Joint8"
+    type="revolute">
+    <origin
+      xyz="0.050528 0.019978 0.121"
+      rpy="0 0 0" />
+    <parent
+      link="Link_3_Finger3" />
+    <child
+      link="Link8" />
+    <axis
+      xyz="0.99329 0.11566 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="Link9">
+    <inertial>
+      <origin
+        xyz="-0.0147717197195811 -0.00283082394208989 0.0251400396560859"
+        rpy="0 0 0" />
+      <mass
+        value="0.0373432587881656" />
+      <inertia
+        ixx="1.02937651916175E-05"
+        ixy="-9.41217563422247E-08"
+        ixz="-3.11692372292593E-07"
+        iyy="1.10908513622436E-05"
+        iyz="2.67678033575654E-06"
+        izz="6.30423908037934E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="/home/jinhwi/catkin_ws/src/doosan_hanyang/hanyang_gripper/meshes/Link9.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.627450980392157 0.627450980392157 0.627450980392157 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="/home/jinhwi/catkin_ws/src/doosan_hanyang/hanyang_gripper/meshes/Link9.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="Joint9"
+    type="revolute">
+    <origin
+      xyz="-0.0029958 -0.00020998 0.06"
+      rpy="0 0 0" />
+    <parent
+      link="Link8" />
+    <child
+      link="Link9" />
+    <axis
+      xyz="0.99329 0.11566 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  
+
+</robot>

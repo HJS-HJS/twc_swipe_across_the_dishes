@@ -1,0 +1,44 @@
+<?xml version="1.0" ?>
+<robot name="table_environment" xmlns:xacro="http://ros.org/wiki/xacro">
+	<xacro:property name="Table_Height" value="0.798"/>
+	<xacro:property name="Plate_Height" value="0.708"/>
+  <!-- table -->
+  <link name="table_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 ${pi/2.0}"/>
+      <geometry>
+        <mesh filename="package://honeycomb_and_plate_description/meshes/honeycomb_table_simplified.dae"/>
+      </geometry>
+      <material name="table_link_material">
+          <color rgba="0.5 0.5 0.5 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 -0.05" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="1.6 0.8 0.1"/>
+      </geometry>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+    </collision>
+  </link>
+
+  <!-- plate -->
+  <link name="plate_link">
+    <visual>
+      <origin xyz="0 0 ${Plate_Height/2}" rpy="0 0 0"/>
+      <geometry>
+        <box size="1.6 0.8 ${Plate_Height}"/>
+      </geometry>
+      <material name="plate_link">
+        <color rgba="0.8 0.8 0.8 1"/>
+      </material>
+    </visual>
+  </link>
+  
+  <joint name="plate_joint" type="fixed">
+    <parent link="table_link"/>
+    <child link="plate_link"/>
+    <origin xyz="0 0 -${Table_Height}" rpy="0 0 0"/>
+	</joint>
+
+</robot>

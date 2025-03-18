@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>honeycomb_table_description</name>
+  <version>0.0.0</version>
+  <description>The honeycomb_table_description package</description>
+
+  <maintainer email="jung.hr.1206@g.skku.edu">Hong-ryul Jung</maintainer>
+
+  <license>Apache License</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <export>
+  </export>
+</package>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="table">
+
+<link name="table_frame">
+  <visual>
+    <origin xyz="0 0 0" rpy="0 0 ${pi/2.0}"/>
+    <geometry>
+      <mesh filename="package://honeycomb_table_description/meshes/honeycomb_table_simplified.dae"/>
+    </geometry>
+  </visual>
+  <collision>
+    <origin xyz="0.0 0.0 -0.05" rpy="0.0 0.0 0.0"/>
+    <geometry>
+      <box size="1.6 0.8 0.1"/>
+    </geometry>
+  </collision>
+</link>
+
+</robot>

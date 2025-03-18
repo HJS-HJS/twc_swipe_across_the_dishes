@@ -27,8 +27,20 @@ class Ellipse(object):
     def get_approach_path(self, npts:int=25, tmin:float=0, trange:float=2*np.pi, width:float=0.1):
         path_xy = self.get_ellipse_pts(npts=npts, tmin=tmin, trange=trange)
         tan_vector = (path_xy[:,-1] - path_xy[:,-2]) / np.linalg.norm(path_xy[:,-1] - path_xy[:,-2])
-        offset_point = path_xy[:,-1] + width * tan_vector
-        return np.flip(np.concatenate([path_xy, offset_point.reshape(-1,1)], axis = 1), axis = 1)
+        offset_point = path_xy[:,-1][:, np.newaxis] + np.linspace(0, width, npts)[np.newaxis, :] * tan_vector[:, np.newaxis]
+        return np.flip(np.concatenate([path_xy, offset_point], axis = 1), axis = 1)
+    
+    def get_along_path(self, npts:int=25, tmin:float=0.0, cw:bool=True, width:float=0.1):
+        direction = -1.0 if cw else 1.0
+        margin_angle = np.pi / 90
+        margin_path_xy = self.get_ellipse_pts(npts=npts, tmin=tmin, trange=direction * margin_angle)
+        
+        path_xy = self.get_ellipse_pts(npts=200, tmin=tmin, trange=direction * np.pi).T
+        lengh_diff = np.linalg.norm(path_xy[1:,:] - path_xy[0,:], axis=1) - width
+        idx = np.where((lengh_diff[:-1] < 0) & (lengh_diff[1:] > 0))[0][0]
+        trange = direction * np.pi * float(idx) / 200
+        offset_point = self.get_ellipse_pts(npts=npts, tmin=tmin + direction * margin_angle, trange=trange - direction * margin_angle)
+        return np.flip(np.concatenate([margin_path_xy, offset_point], axis = 1), axis = 1)
         
     def resize_ratio(self, ratio:float = 1.0):
         x0, y0, ap, bp, e, phi = self.pole

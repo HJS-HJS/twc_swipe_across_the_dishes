@@ -100,7 +100,20 @@ class MotionPlanner(object):
             offset=[0.0, 0.0, -0.2, 0.0, 0.0, 0.0])
         end_posx = self.convert_to_drfl_posx(end_pose, 0.0)
 
-        # Move m1013
+        # Check each path is reachable
+        rospy.loginfo('Check all poses of path are valid(inverse kinematics)')
+        if not self.is_pose_reachable(approach_pose):
+            rospy.logerr('Appoach pose is not reachable.')
+            return
+        path_len = len(push_path.poses)
+        for i in range(path_len):
+            pose = push_path.poses[i]
+            if not self.is_pose_reachable(pose):
+                rospy.logerr('Pose {}/{} is not reachable.'.format(i, path_len))
+                return
+        rospy.loginfo('All poses of path are valid!!!')
+        
+        # Parameter for moving m1013
         max_vel = 30  # mm/s
         max_acc = 30  # mm/s^2
         drfl.set_robot_mode(1)  # set robot mode to auto

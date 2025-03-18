@@ -74,7 +74,7 @@ class SwipeDishExample(object):
         '''Visualize point cloud & color segmask in rViz'''
         depth = self.depth_msg2image(depth_image)
         self.point_cloud_pub.publish(self.pcd_to_pointcloud2(depth2pcd(depth, np.array(camera_info.K).reshape(3, 3))))
-        if color_image:
+        if color_image is not None:
             self.color_image_pub.publish(self.cv_bridge.cv2_to_imgmsg(color_image, encoding="passthrough"))
 
     def request_swipe_path(self, dish_segmentation, table_detection, depth_image, camera_info, camera_pose, target_id,
@@ -171,11 +171,11 @@ if __name__ == '__main__':
     rospy.init_node('swipe_across_the_dishes_example')
     example = SwipeDishExample()
 
-    # motion_planner = MotionPlanner(
-    #     group_name='m1013_arm', pose_reference_frame='base_0')
     motion_planner = MotionPlanner(
-        group_name='arm', pose_reference_frame='base_0', ns='dsr01m1013')
-    motion_planner.move_group.set_max_velocity_scaling_factor(0.1)
+        group_name='m1013_arm', pose_reference_frame='base_0')
+    # motion_planner = MotionPlanner(
+    #     group_name='arm', pose_reference_frame='base_0', ns='dsr01m1013')
+    # motion_planner.move_group.set_max_velocity_scaling_factor(0.1)
 
 
     def open_pickle(filename):

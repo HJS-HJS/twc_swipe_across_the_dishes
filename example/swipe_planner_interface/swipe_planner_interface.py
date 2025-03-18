@@ -39,8 +39,8 @@ class GetSwipeDishesPath(object):
 
         Returns
         -------
-        push_path : nav_msgs/Path
-            Push path.
+        push_path_list : moveit_msgs/CartesianTrajectory[]
+            Push path list.
         push_contact : list of ContactPoint
             Push contact points.
         """
@@ -57,7 +57,7 @@ class GetSwipeDishesPath(object):
             res = self.get_stable_push_path(req)
             rospy.loginfo('Service call succeeded. Elapsed time: {}'.format(
                 (rospy.Time.now() - start_time).to_sec()))
-            return res.path, res.plan_successful, res.gripper_pose
+            return res.path_list, res.plan_successful, res.gripper_pose
         
         except rospy.ServiceException as e:
             rospy.logerr("Service call failed: %s" % e)

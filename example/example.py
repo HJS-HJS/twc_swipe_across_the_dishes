@@ -15,7 +15,6 @@ from geometry_msgs.msg import PoseStamped
 
 # Push path module service client
 from swipe_planner_interface.swipe_planner_interface import GetSwipeDishesPath
-from manipulator_interface.motion_planner import MotionPlanner
 
 # For vizualization
 from cv_bridge import CvBridge
@@ -41,11 +40,8 @@ class SwipeDishExample(object):
         # Initialize planner module
         self.init_swipe_planner()
 
-        # Get pre-made example data
-        # self.get_example_data()
-
         # Load camera transform and broadcast to /tf
-        # self.cam_tf_broadcaster = CameraTransformBroadcaster()
+        self.cam_tf_broadcaster = CameraTransformBroadcaster()
         # self.cam_tf_broadcaster.broadcast_transforms_pose(self.camera_pose)
 
         self.cv_bridge = CvBridge()
@@ -55,8 +51,6 @@ class SwipeDishExample(object):
         self.push_path_pub = rospy.Publisher('/vis/push_path', Path, queue_size=2)
         self.point_cloud_pub = rospy.Publisher('/vis/point_cloud2', PointCloud2, queue_size=2)
         self.color_image_pub = rospy.Publisher('/vis/color_image', Image, queue_size=2)
-
-        # self.visualize_example_scene_in_rviz()
 
     def init_swipe_planner(self):
         self.swipe_planner_client = GetSwipeDishesPath()
@@ -69,21 +63,19 @@ class SwipeDishExample(object):
         plt.imshow(scene_img)
         plt.show()
 
-    def visualize_example_scene_in_rviz(self, depth_image, camera_info, color_image=None):
+    def visualize_example_scene_in_rviz(self, depth_image, camera_info, color_image, camera_pose):
 
         '''Visualize point cloud & color segmask in rViz'''
         depth = self.depth_msg2image(depth_image)
         self.point_cloud_pub.publish(self.pcd_to_pointcloud2(depth2pcd(depth, np.array(camera_info.K).reshape(3, 3))))
-        if color_image is not None:
-            self.color_image_pub.publish(self.cv_bridge.cv2_to_imgmsg(color_image, encoding="passthrough"))
+        self.color_image_pub.publish(self.cv_bridge.cv2_to_imgmsg(color_image, encoding="passthrough"))
+        self.cam_tf_broadcaster.broadcast_transforms_pose(camera_pose)
 
     def request_swipe_path(self, dish_segmentation, table_detection, depth_image, camera_info, camera_pose, target_id,
-                           color_image=None, vis=True):
+                           color_image, vis=True):
 
         # Visualize example scene (does not affect planning)
-        # self.show_example_segmented_scene(self.color_image)
-        if vis:
-            self.visualize_example_scene_in_rviz(depth_image, camera_info, color_image)
+        if vis: self.visualize_example_scene_in_rviz(depth_image, camera_info, color_image, camera_pose)
 
         # Request push planning
         push_path, plan_successful, gripper_pose = self.swipe_planner_client.request(dish_segmentation,
@@ -171,18 +163,10 @@ if __name__ == '__main__':
     rospy.init_node('swipe_across_the_dishes_example')
     example = SwipeDishExample()
 
-    motion_planner = MotionPlanner(
-        group_name='m1013_arm', pose_reference_frame='base_0')
-    # motion_planner = MotionPlanner(
-    #     group_name='arm', pose_reference_frame='base_0', ns='dsr01m1013')
-    # motion_planner.move_group.set_max_velocity_scaling_factor(0.1)
-
-
     def open_pickle(filename):
         file_path = os.path.join(os.path.dirname(__file__), "service_req", filename)
         with open(file_path, 'rb') as f:
             return pickle.load(f)
-
 
     dish_segmentation = open_pickle('dish_segmentation.p')
     table_detection = open_pickle('table_detection.p')
@@ -203,5 +187,4 @@ if __name__ == '__main__':
 
         push_path, plan_successful, gripper_pose = example.request_swipe_path(dish_segmentation, table_detection,
                                                                               depth_image, camera_info, camera_pose,
-                                                                              target_id, color_image)
-        motion_planner.run_swipe_path(push_path)
+                                                                              target_id, color_image, True)

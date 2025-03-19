@@ -63,7 +63,7 @@ class SwipeAcrossTheDishesServer(object):
         """Response to ROS service. make push path and gripper pose by using trained model(push net).
 
         Args:
-            request (GetSwipeDishesPathRequest): ROS service from stable task
+            request (GetSwipeDishesPathRequest): ROS service from swipe task
 
         Returns:
             GetSwipeDishesPathResponse: generated push_path(moveit_msgs::CartesianTrajectory()), plan_successful(bool), gripper pose(float32[angle, width])
@@ -554,7 +554,7 @@ class SwipeAcrossTheDishesServer(object):
         return img
 
 if __name__ == '__main__':
-    rospy.init_node('stable_push_net_server')
+    rospy.init_node('twc_swipe_across_the_dishes_server')
     server = SwipeAcrossTheDishesServer()
     
     rospy.spin()

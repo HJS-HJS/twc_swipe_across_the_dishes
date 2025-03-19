@@ -13,12 +13,12 @@ class GetSwipeDishesPath(object):
         # register service
         service_name = '/swipe_across_ths_dishes/get_swipe_dish_path'
         rospy.wait_for_service(service_name)
-        self.get_stable_push_path = rospy.ServiceProxy(
+        self.get_swipe_push_path = rospy.ServiceProxy(
             service_name, swipe_dishes_srv.GetSwipeDishesPath())
         rospy.loginfo("Service `%s` is ready" % service_name)
 
     def request(self, dish_segmentation, table_detection, depth_image, camera_info, camera_pose, target_id):
-        """Request stable push path from min_icr_push_planner.
+        """Request swipe path from twc_swipe_across_the_dishes module.
 
         Parameters
         ----------
@@ -44,7 +44,7 @@ class GetSwipeDishesPath(object):
         push_contact : list of ContactPoint
             Push contact points.
         """
-        rospy.loginfo("Requesting stable push path")
+        rospy.loginfo("Requesting swipe path")
         start_time = rospy.Time.now()
         try:
             req = swipe_dishes_srv.GetSwipeDishesPathRequest()
@@ -54,7 +54,7 @@ class GetSwipeDishesPath(object):
             req.camera_info = camera_info
             req.camera_pose = camera_pose
             req.target_id = target_id
-            res = self.get_stable_push_path(req)
+            res = self.get_swipe_push_path(req)
             rospy.loginfo('Service call succeeded. Elapsed time: {}'.format(
                 (rospy.Time.now() - start_time).to_sec()))
             return res.path_list, res.plan_successful, res.gripper_pose

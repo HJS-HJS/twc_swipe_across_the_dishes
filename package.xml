@@ -2,7 +2,7 @@
 <package format="2">
   <name>swipe_across_the_dishes</name>
   <version>1.0.0</version>
-  <description>The stable_push_net package</description>
+  <description>The swipe_across_the_dishes package</description>
 
   <maintainer email="jongsoo@g.skku.edu">Jongsoo Han</maintainer>
 

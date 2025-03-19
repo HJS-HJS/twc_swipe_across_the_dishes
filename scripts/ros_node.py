@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+import os
 import copy
 import numpy as np
 import matplotlib
-matplotlib.use('TkAgg')
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from typing import List, Tuple
 
@@ -63,7 +64,7 @@ class SwipeAcrossTheDishesServer(object):
         """Response to ROS service. make push path and gripper pose by using trained model(push net).
 
         Args:
-            request (GetSwipeDishesPathRequest): ROS service from swipe task
+            request (GetSwipeDishesPathRequest): ROS service from stable task
 
         Returns:
             GetSwipeDishesPathResponse: generated push_path(moveit_msgs::CartesianTrajectory()), plan_successful(bool), gripper pose(float32[angle, width])
@@ -317,7 +318,11 @@ class SwipeAcrossTheDishesServer(object):
             ax1.set_aspect('equal')
             ax2.set_aspect('equal')
                 
-            plt.show()
+            # plt.show()
+            print("try save png")
+            save_path = os.path.join(os.path.dirname(__file__))
+            plt.savefig(save_path + '/../figures/generated_swipe_path.png')
+            print("save png")
         
         res = GetSwipeDishesPathResponse()   
         res.path_list = []
@@ -554,7 +559,7 @@ class SwipeAcrossTheDishesServer(object):
         return img
 
 if __name__ == '__main__':
-    rospy.init_node('twc_swipe_across_the_dishes_server')
+    rospy.init_node('stable_push_net_server')
     server = SwipeAcrossTheDishesServer()
     
     rospy.spin()

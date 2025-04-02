@@ -1,6 +1,10 @@
 # swipe_across_the_dishes
 A module that creates a path to make space for the gripping dishes.
 
+You can check out various examples by using the following GitHub repositories - [https://github.com/rise-lab-skku/twc-swipe-across-the-dishes-moveit-example](https://github.com/rise-lab-skku/twc-swipe-across-the-dishes-moveit-example): 
+- Manipulator control using MoveIt!. 
+- Feasible path checking using MoveIt! inverse kinematic calculation.
+
 ## Setup
 ### 1. build package
 ```sh
@@ -68,8 +72,9 @@ in [config.yaml](./config/config.yaml),
     - target_id ([std_msgs/Int32](https://docs.ros.org/en/melodic/api/std_msgs/html/msg/Int32.html)): 
         - Order of tableware targeted by dish_segmentation
     #### 2. response
-    - path ([moveit_msgs/CartesianTrajectory](https://docs.ros.org/en/noetic/api/moveit_msgs/html/msg/CartesianTrajectory.html)): 
-        - Path of the robot end-effector to make space for the gripping task
+    - path_list ([moveit_msgs/CartesianTrajectory](https://docs.ros.org/en/noetic/api/moveit_msgs/html/msg/CartesianTrajectory.html)[]): 
+        - Path list of the robot end-effector to make space for the gripping task.
+        - A total of four paths are created and provided.
     - plan_successful (bool): 
         - True if the plan was successful. False if the plan failed. In this case, the module reutrns a dummy path.
     - gripper_pose (float32): 
@@ -103,12 +108,12 @@ in [config.yaml](./config/config.yaml),
     <img src="./figures/2_Tableware_After_Edge_Sampling.png" width="500"/>
     </div>
 
-    -  Generated swipe path
+    -  Generated four swipe path
     <div align="center">
     <img src="./figures/3_Generated_Swipe_Path.png" width="500"/>
     </div>
 
-    -  Depth image, swipe path visualized in rviz
+    -  Depth image, swipe path from path_list visualized in rviz
     <div align="center">
     <img src="./figures/4_Depth_image_swipe_path_visualized_in_rviz.png" width="500"/>
     </div>

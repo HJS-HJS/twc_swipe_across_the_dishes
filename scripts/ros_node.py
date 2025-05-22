@@ -24,7 +24,6 @@ from swipe_dishes.utils.ellipse import Ellipse
 from swipe_dishes.utils.utils import Angle
 
 class SwipeAcrossTheDishesServer(object):
-    
     def __init__(self):
         self.cv_bridge = CvBridge()
         self.tf = tf.TransformerROS()
@@ -42,7 +41,7 @@ class SwipeAcrossTheDishesServer(object):
             '/swipe_across_ths_dishes/get_swipe_dish_path',
             GetSwipeDishesPath,
             self.get_swipe_dish_path_handler
-            )
+        )
 
         # Publisher for visualization
         if self.planner_config["publish_vis_topic"]:
@@ -221,7 +220,7 @@ class SwipeAcrossTheDishesServer(object):
         start_path_list[0] = cw_t_ellipse.get_approach_path(npts=start_path_lengh, tmin= target_ellipse.normal_vector(path_angle.start) + np.pi, trange= _desired_angle, width= self.gripper_config["width"] + 0.07)
         start_path_list[1] = ccw_t_ellipse.get_approach_path(npts=start_path_lengh, tmin= target_ellipse.normal_vector(path_angle.end) + np.pi, trange= -_desired_angle, width= self.gripper_config["width"] + 0.07)
 
-        ## Along path from out of the target
+        ## Entering path along the target
         start_path_list[2] = target_ellipse.get_along_path(npts=start_path_lengh, tmin=path_angle.start, cw=True, width=self.gripper_config["width"])
         start_path_list[3] = target_ellipse.get_along_path(npts=start_path_lengh, tmin=path_angle.end, cw=False, width=self.gripper_config["width"])
 
@@ -244,7 +243,6 @@ class SwipeAcrossTheDishesServer(object):
             if _path_to_base < _best_path_lengh and _is_available[idx]:
                 _best_path = idx
                 _best_path_lengh = _path_to_base
-        _best_path = 3
         
         # vis
         if self.planner_config["visualize"]:
@@ -258,27 +256,23 @@ class SwipeAcrossTheDishesServer(object):
             ax1.set_ylim([map_corners[2] - 0.1, map_corners[3] + 0.1])
             ax2.set_xlim([map_corners[0] - 0.1, map_corners[1] + 0.1])
             ax2.set_ylim([map_corners[2] - 0.1, map_corners[3] + 0.1])
-                
+            
+            # 321
             for obs in obs_ellipse_list:
                 obs.resize(-self.planner_config["dish_r_margin"], -self.planner_config["dish_r_margin"])
                 x, y = obs.get_ellipse_pts()
                 ax1.scatter(obs.center[0], obs.center[1])
                 ax1.fill_between(x, y, color='darkred')
+                
+            for obs in obs_edge_list:
+                rand_idx = np.random.randint(0, len(obs.edge_xyz), 1000)
+                ax1.plot(obs.edge_xyz[rand_idx, 0], obs.edge_xyz[rand_idx, 1], 'ko')
 
-                ax2.fill_between(x, y, color='darkred')
-                obs.resize(self.planner_config["dish_r_margin"], self.planner_config["dish_r_margin"])
-                x, y = obs.get_ellipse_pts()
-                ax2.scatter(obs.center[0], obs.center[1])
-                ax2.plot(x, y, color='darkred')
+            ax1.fill_between(target_edge.edge_xyz[:,0], target_edge.edge_xyz[:,1], color='gray')
+            ax1.plot(target_edge.edge_xyz[rand_idx, 0], target_edge.edge_xyz[rand_idx, 1], 'ko')
 
-                checker = Ellipse.check_overlap_area(target_ellipse, obs)
-                if checker is None: continue
-                x, y = target_ellipse.point(checker.start)
-                ax2.scatter(x, y)
-                x, y = target_ellipse.point(checker.end)
-                ax2.scatter(x, y)
-
-            for i, sub_plot in enumerate([323, 324, 325, 326]):  # 4, 5, 6번 서브플롯
+            # 323 ~ 326
+            for i, sub_plot in enumerate([323, 324, 325, 326]):  # 3, 4, 5, 6번 서브플롯
                 ax_clone = fig.add_subplot(sub_plot)
                 ax_clone.set_xlim([map_corners[0] - 0.1, map_corners[1] + 0.1])
                 ax_clone.set_ylim([map_corners[2] - 0.1, map_corners[3] + 0.1])
@@ -293,18 +287,45 @@ class SwipeAcrossTheDishesServer(object):
                 ax_clone.plot(start_path_list[i][0], start_path_list[i][1], _color, linewidth=4)
                 ax_clone.plot(finger_path_xy_base[0], finger_path_xy_base[1], _color, linewidth=4)
                 
+                # Draw start direction triangle
+                if i % 2 == 0:
+                    _order_c = -1
+                    _order_n = -2
+                else:
+                    _order_c = 0
+                    _order_n = 1
+                    
+                x0, y0 = finger_path_xy_base[0][_order_c], finger_path_xy_base[1][_order_c]
+                x1, y1 = finger_path_xy_base[0][_order_n], finger_path_xy_base[1][_order_n]
+                dx, dy = x1 - x0, y1 - y0
+                norm = np.hypot(dx, dy)
+                if norm > 0:
+                    dx /= norm
+                    dy /= norm
+                    ax_clone.scatter(x0, y0, marker=(3, 0, np.degrees(np.arctan2(dy, dx)) - 30.0), color=_color, s=200)
+                    
+                x0, y0 = start_path_list[i][0][start_path_lengh], start_path_list[i][1][start_path_lengh]
+                ax_clone.scatter(x0, y0, color=_color)
+                
                 ax_clone.grid(True)
                 ax_clone.set_aspect('equal')
 
-            for obs in obs_edge_list:
-                rand_idx = np.random.randint(0, len(obs.edge_xyz), 1000)
-                ax1.plot(obs.edge_xyz[rand_idx, 0], obs.edge_xyz[rand_idx, 1], 'ko')
+            # 322
+            for obs in obs_ellipse_list:
+                x, y = obs.get_ellipse_pts()
 
-            ax1.fill_between(target_edge.edge_xyz[:,0], target_edge.edge_xyz[:,1], color='gray')
-            ax1.plot(target_edge.edge_xyz[rand_idx, 0], target_edge.edge_xyz[rand_idx, 1], 'ko')
+                ax2.fill_between(x, y, color='darkred')
+                obs.resize(self.planner_config["dish_r_margin"], self.planner_config["dish_r_margin"])
+                x, y = obs.get_ellipse_pts()
+                ax2.scatter(obs.center[0], obs.center[1])
+                ax2.plot(x, y, color='darkred')
 
-            ax2.plot(finger_path_xy_base[0], finger_path_xy_base[1], 'lime',linewidth=8)
-            ax2.plot(start_path_list[_best_path,:,:][0], start_path_list[_best_path,:,:][1], 'lime', linewidth=8)
+                checker = Ellipse.check_overlap_area(target_ellipse, obs)
+                if checker is None: continue
+                x, y = target_ellipse.point(checker.start)
+                ax2.scatter(x, y)
+                x, y = target_ellipse.point(checker.end)
+                ax2.scatter(x, y)
 
             x, y = origin_target_ellipse.get_ellipse_pts()
             ax2.fill_between(x, y, color='gray')
@@ -489,7 +510,7 @@ class SwipeAcrossTheDishesServer(object):
         rot_mat = tft.quaternion_matrix(orientation)[:3,:3]
         self.n_vector = rot_mat[:,2]
         
-        # Get local positions of vertices 
+        # Get local positions of vertices
         vertices_loc = []
         for x in [-self.size_msg.x/2, self.size_msg.x/2]:
             for y in [-self.size_msg.y/2, self.size_msg.y/2]:
